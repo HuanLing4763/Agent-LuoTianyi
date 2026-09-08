@@ -18,6 +18,7 @@ from typing import Dict, Any, Optional, List, Set
 from pathlib import Path
 from urllib.parse import quote
 from src.utils.helpers import load_config
+from src.world.get_new_songs.mediawiki import MediaWikiClient, parse_song_titles_from_template
 from src.world.get_new_songs.vcpedia_fetcher import VCPediaFetcher
 from src.subconscious.music_knowledge.song_database import init_song_db, get_song_session, Song
 
@@ -74,9 +75,26 @@ def _fetch_html(url: str, headers: Dict[str, str], timeout: int) -> str:
 
 def fetch_song_list_from_template(url: str, timeout: int = 20) -> List[str]:
     """
-    从模板页提取歌曲名（按页面出现顺序）。
-    逻辑：抓取 mw-content-text 区域内所有链接文本，过滤掉分类/模板/分组标题等。
+    从模板页获取歌曲名（按页面出现顺序）。
+
+    本切片改造：优先通过 MediaWiki API 获取模板 wikitext 并解析歌曲名；
+    当 URL 不是 api.php 且 wikitext 解析失败时，回退到旧 HTML 解析（保持兼容）。
+    解析失败时记录 warning 并返回空列表。
     """
+    base_url = "https://vcpedia.cn"
+    if "api.php" in url:
+        try:
+            client = MediaWikiClient(base_url, timeout_seconds=timeout)
+            wikitext = client.get_wikitext("Template:洛天依/2026")
+            return parse_song_titles_from_template(wikitext)
+        except Exception as e:
+            logger.warning(f"MediaWiki 获取模板失败，回退 HTML 解析: {e}")
+
+    return _fetch_song_list_from_html(url, timeout=timeout)
+
+
+def _fetch_song_list_from_html(url: str, timeout: int = 20) -> List[str]:
+    """旧实现：抓取渲染 HTML 并按链接文本过滤歌曲名。"""
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

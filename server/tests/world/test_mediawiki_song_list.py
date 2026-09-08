@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -27,14 +28,15 @@ class FakeSession:
         self.requested_urls = []
 
     def get(self, url, **kwargs):
-        self.requested_urls.append(url)
+        self.requested_urls.append((url, kwargs.get("params") or {}))
         import requests
 
-        for params, payload in self.responses:
-            if params in url:
+        query_params = kwargs.get("params") or {}
+        for matcher, payload in self.responses:
+            if all(query_params.get(key) == value for key, value in matcher.items()):
                 resp = requests.Response()
                 resp.status_code = 200
-                resp._content = str(payload).replace("'", '"').encode("utf-8")
+                resp._content = json.dumps(payload, ensure_ascii=False).encode("utf-8")
                 return resp
         raise requests.ConnectionError("network unreachable")
 
@@ -61,7 +63,7 @@ def _make_client(session):
 
 def test_get_wikitext_returns_main_slot_content():
     session = FakeSession(
-        [("action=query", _query_json("煌"))]
+        [({"action": "query", "titles": "煌"}, _query_json("煌"))]
     )
     client = _make_client(session)
 
@@ -71,19 +73,20 @@ def test_get_wikitext_returns_main_slot_content():
 
 
 def test_get_wikitext_uses_revision_params():
-    session = FakeSession([("action=query", _query_json("煌"))])
+    session = FakeSession([({"action": "query", "titles": "煌"}, _query_json("煌"))])
     client = _make_client(session)
 
     client.get_wikitext("煌")
 
-    assert "prop=revisions" in session.requested_urls[0]
-    assert "rvslots=main" in session.requested_urls[0]
-    assert "rvprop=content" in session.requested_urls[0]
-    assert "formatversion=2" in session.requested_urls[0]
+    requested_params = session.requested_urls[0][1]
+    assert requested_params["prop"] == "revisions"
+    assert requested_params["rvslots"] == "main"
+    assert requested_params["rvprop"] == "content"
+    assert requested_params["formatversion"] == "2"
 
 
 def test_get_wikitext_raises_when_page_missing():
-    session = FakeSession([("action=query", _query_json("不存在", missing=True))])
+    session = FakeSession([({"action": "query", "titles": "不存在"}, _query_json("不存在", missing=True))])
     client = _make_client(session)
 
     with pytest.raises(MediaWikiPageNotFoundError):
@@ -135,6 +138,7 @@ def test_parse_song_titles_handles_pipe_display_names():
 
     titles = parse_song_titles_from_template(wikitext)
 
+    assert "同名" not in titles
     assert titles == ["显示名"]
 
 
