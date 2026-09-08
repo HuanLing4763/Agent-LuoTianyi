@@ -53,14 +53,14 @@
 - 输入非法（不是字符串、为空）：返回空列表。
 - 不在 spec 内的解析规则（如括号内注记、外链、管道后空白）不做额外清洗；后续切片按真实数据需要再扩展。
 
-### `fetch_song_list_from_template(year: int, *, base_url: str, timeout_seconds: int = 20) -> list[str]`
+### `fetch_song_list_from_template(url: str, timeout: int = 20) -> list[str]`
 
 旧的 HTML 版按模板页链接文本过滤歌曲名。本切片将其行为改为：
 
-1. 用 `MediaWikiClient` 获取 `Template:洛天依/<year>` 的 wikitext；
-2. 调用 `parse_song_titles_from_template` 返回歌曲名列表。
+1. `url` 为 `api.php` 形式时，用 `MediaWikiClient` 获取 `Template:洛天依/<year>` 的 wikitext，再调用 `parse_song_titles_from_template` 返回歌曲名列表；
+2. MediaWiki 请求失败时回退到旧 HTML 解析路径（保持兼容），两者都失败时记录 warning 并返回空列表。
 
-异常行为：模板页缺失时抛出 `MediaWikiPageNotFoundError`，网络失败抛出 `MediaWikiRequestError`；由调用方（任务）记录失败。
+异常行为：`api.php` 形式 URL 对应的模板页缺失时，MediaWiki 路径抛 `MediaWikiPageNotFoundError` 并回退 HTML 解析；HTML 路径失败由内部记录。
 
 ## 当前跨模块兼容接口
 
