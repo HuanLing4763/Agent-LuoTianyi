@@ -8,6 +8,7 @@ if server_root not in sys.path:
 
 import pytest
 
+import src.world.get_new_songs.mediawiki as mediawiki
 from src.world.get_new_songs.mediawiki import (
     MediaWikiClient,
     MediaWikiPageNotFoundError,
@@ -59,6 +60,47 @@ def _query_json(title, *, missing=False):
 
 def _make_client(session):
     return MediaWikiClient("https://vcpedia.cn", session=session)
+
+
+def test_mediawiki_client_uses_real_curl_user_agent(monkeypatch):
+    """默认 Session 的 UA 应来自本机真实 curl 版本，而不是常量或浏览器 UA。"""
+    detected = {"value": ""}
+
+    def fake_detect() -> str:
+        return detected["value"]
+
+    monkeypatch.setattr(mediawiki, "_detect_curl_user_agent", fake_detect)
+
+    detected["value"] = "curl/9.1.0"
+    client = MediaWikiClient("https://vcpedia.cn")
+    assert client.session.headers["User-Agent"] == "curl/9.1.0"
+
+    detected["value"] = ""
+    client = MediaWikiClient("https://vcpedia.cn")
+    assert client.session.headers["User-Agent"] == mediawiki._DEFAULT_USER_AGENT
+
+
+def test_fetch_song_list_from_template_parses_title_and_base_from_url(monkeypatch):
+    """api.php 形式 URL 的标题与站点地址应从 URL 解析，不能硬编码。"""
+    import src.world.get_new_songs.daily_new_song_fetcher as fetcher
+
+    captured = {}
+
+    def fake_get_wikitext(self, title: str) -> str:
+        captured["title"] = title
+        captured["base_url"] = self.base_url
+        return "{{Navbox|[[煌]]、[[同心锁]]}}"
+
+    monkeypatch.setattr(MediaWikiClient, "get_wikitext", fake_get_wikitext)
+
+    url = "https://vcpedia.cn/api.php?action=query&titles=Template:%E6%B4%9B%E5%A4%A9%E4%BE%9D/2025"
+    result = fetcher.fetch_song_list_from_template(url, timeout=5)
+
+    assert captured == {
+        "title": "Template:洛天依/2025",
+        "base_url": "https://vcpedia.cn",
+    }
+    assert result == ["煌", "同心锁"]
 
 
 def test_get_wikitext_returns_main_slot_content():

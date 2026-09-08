@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 from typing import Any, Dict, List
 
 import requests
@@ -15,9 +17,39 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# vcpedia.cn 对 python-requests 默认 UA 返回反爬挑战（403/567），
-# 使用与 curl 兼容的 UA 可正常获取 API JSON。
+# vcpedia.cn 的反爬策略会拒绝 requests 默认 UA 与常见浏览器 UA（403/567 挑战页），
+# 但放行以 curl/ 开头的 UA。优先探测本机真实 curl 版本，探测失败时回退到该常量，
+# 而不是无条件宣称一个未必存在的 curl 版本。
 _DEFAULT_USER_AGENT = "curl/8.5.0"
+
+
+def _detect_curl_user_agent() -> str:
+    """返回本机 curl 的真实版本标识（如 curl/8.6.0）。
+
+    系统未安装 curl 或取版本失败时返回空串，由调用方决定是否回退常量。
+    """
+    curl_path = shutil.which("curl") or shutil.which("curl.exe")
+    if not curl_path:
+        return ""
+    try:
+        result = subprocess.run(
+            [curl_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.warning(f"探测 curl 版本失败: {exc}")
+        return ""
+    if result.returncode != 0:
+        return ""
+    first_line = (result.stdout or "").splitlines()[0] if result.stdout else ""
+    if first_line and first_line.split():
+        # `curl --version` 首行形如 `curl 8.6.0 (...)`；站点反爬只按 `curl` 前缀放行，
+        # 拼接成与真实 curl 网络请求一致的 UA 形式 `curl/<版本>`。
+        return f"{first_line.split()[0]}/{first_line.split()[1]}"
+    return ""
 
 
 class MediaWikiRequestError(RuntimeError):
@@ -32,7 +64,8 @@ class MediaWikiClient:
     """按页面标题获取 wikitext 的只读客户端。
 
     `session` 可注入 Fake 会话用于测试，默认使用 requests.Session。
-    默认 User-Agent 与站点反爬策略兼容（vcpedia.cn 对 python-requests 默认 UA 返回 567）。
+    默认 User-Agent 优先取本机真实 curl 版本；站点反爬会拒绝 requests 默认 UA
+    与浏览器 UA，但放行 curl/ 前缀（探测失败时回退到 `_DEFAULT_USER_AGENT`）。
     """
 
     def __init__(
@@ -47,7 +80,8 @@ class MediaWikiClient:
         self.timeout_seconds = timeout_seconds
         if session is None:
             session = requests.Session()
-            session.headers.update({"User-Agent": _DEFAULT_USER_AGENT})
+            user_agent = _detect_curl_user_agent() or _DEFAULT_USER_AGENT
+            session.headers.update({"User-Agent": user_agent})
         self.session = session
 
     def fetch_json(self, params: Dict[str, Any]) -> Dict[str, Any]:

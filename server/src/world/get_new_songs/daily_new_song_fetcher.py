@@ -16,7 +16,7 @@ import subprocess
 import shutil
 from typing import Dict, Any, Optional, List, Set
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlparse, parse_qs
 from src.utils.helpers import load_config
 from src.world.get_new_songs.mediawiki import MediaWikiClient, parse_song_titles_from_template
 from src.world.get_new_songs.vcpedia_fetcher import VCPediaFetcher
@@ -81,11 +81,14 @@ def fetch_song_list_from_template(url: str, timeout: int = 20) -> List[str]:
     本切片改造：`url` 为 api.php 形式时通过 MediaWiki API 获取模板 wikitext 并解析歌曲名；
     否则走旧 HTML 解析路径（保持兼容）。MediaWiki 路径失败时记录 warning 并回退 HTML。
     """
-    base_url = "https://vcpedia.cn"
+    parsed = urlparse(url)
     if "api.php" in url:
         try:
+            query = parse_qs(parsed.query)
+            title = query["titles"][0]
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
             client = MediaWikiClient(base_url, timeout_seconds=timeout)
-            wikitext = client.get_wikitext("Template:洛天依/2026")
+            wikitext = client.get_wikitext(title)
             return parse_song_titles_from_template(wikitext)
         except Exception as e:
             logger.warning(f"MediaWiki 获取模板失败，回退 HTML 解析: {e}")
