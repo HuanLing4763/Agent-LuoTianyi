@@ -24,7 +24,8 @@ from src.subconscious.music_knowledge.song_database import init_song_db, get_son
 
 logger = get_logger("DailyNewSongFetcher")
 CURRENT_YEAR = datetime.datetime.now().year
-TEMPLATE_URL = f"https://vcpedia.cn/Template:%E6%B4%9B%E5%A4%A9%E4%BE%9D/{CURRENT_YEAR}"
+# MediaWiki API 形式的模板列表地址（api.php 会走 MediaWiki wikitext 解析路径）
+TEMPLATE_URL = f"https://vcpedia.cn/api.php?action=query&titles=Template:%E6%B4%9B%E5%A4%A9%E4%BE%9D/{CURRENT_YEAR}"
 KNOWLEDGE_DIR = Path("res/knowledge")
 SONG_NAME_KEYWORDS_FILE = KNOWLEDGE_DIR / "song_name_keywords.txt"
 SONG_LYRIC_KEYWORDS_FILE = KNOWLEDGE_DIR / "song_lyric_keywords.txt"
@@ -77,9 +78,8 @@ def fetch_song_list_from_template(url: str, timeout: int = 20) -> List[str]:
     """
     从模板页获取歌曲名（按页面出现顺序）。
 
-    本切片改造：优先通过 MediaWiki API 获取模板 wikitext 并解析歌曲名；
-    当 URL 不是 api.php 且 wikitext 解析失败时，回退到旧 HTML 解析（保持兼容）。
-    解析失败时记录 warning 并返回空列表。
+    本切片改造：`url` 为 api.php 形式时通过 MediaWiki API 获取模板 wikitext 并解析歌曲名；
+    否则走旧 HTML 解析路径（保持兼容）。MediaWiki 路径失败时记录 warning 并回退 HTML。
     """
     base_url = "https://vcpedia.cn"
     if "api.php" in url:

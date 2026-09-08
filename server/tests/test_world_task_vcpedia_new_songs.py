@@ -105,6 +105,14 @@ def test_vcpedia_run_once_fetches_live_songs_and_writes_result(monkeypatch, tmp_
     task = VCPediaNewSongTask(task_config)
     task.initialize(SimpleNamespace(llm_service=None))
 
+    # 本任务测试会真实访问 VCPedia；模板列表通过 MediaWiki API 获取
+    original_fetch = fetcher_module.fetch_song_list_from_template
+    monkeypatch.setattr(
+        fetcher_module,
+        "fetch_song_list_from_template",
+        lambda url, timeout=20: original_fetch("https://vcpedia.cn/api.php", timeout=timeout),
+    )
+
     result = task.run_once()
     payload = {
         "ok": result.ok,
