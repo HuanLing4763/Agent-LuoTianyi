@@ -30,6 +30,38 @@
 
 具体任务由 `citywalk`、`bili_event_updater`、`get_new_songs`、`learn_sing_songs` 等包实现。
 
+## MediaWiki 数据获取（新歌知识）
+
+`server/src/world/get_new_songs/mediawiki.py` 提供基于 VCPedia MediaWiki API（`https://vcpedia.cn/api.php`）的只读获取能力，用于替代旧 HTML 抓取路径。
+
+### `MediaWikiClient`
+
+按页面标题获取 wikitext。
+
+- 构造：`MediaWikiClient(base_url: str, *, timeout_seconds: int = 20)`。`base_url` 是站点根地址，如 `https://vcpedia.cn`；API 端点为 `{base_url}/api.php`。
+- `get_wikitext(title: str) -> str`：通过 `action=query&prop=revisions&rvslots=main&rvprop=content&formatversion=2` 返回页面最新版本的 main-slot wikitext 文本。
+  - 正常行为：页面存在时返回 wikitext 字符串；不包含任何解析后的 HTML。
+  - 异常行为：网络失败、超时或非 200 响应抛出 `MediaWikiRequestError`；页面不存在（`missing`）抛出 `MediaWikiPageNotFoundError`；均不自动重试。
+- 网络实现封装在 `MediaWikiClient.fetch_json(params: dict) -> dict`，通过 requests.Session 发起 GET 请求并返回 JSON；测试使用 Fake Session 替换该 seam。
+- 额外副作用：无。不写文件、不写数据库、不改配置。
+
+### `parse_song_titles_from_template(wikitext: str) -> list[str]`
+
+从「洛天依/年份」导航模板的 wikitext 中解析歌曲名列表（按出现顺序）。
+
+- 正常行为：解析 wikitext 中 `[[目标页面|显示名]]` 形式的内链并优先取显示名；对不以「分类/模板/媒体/帮助」为目标的普通页面内链去重后保留顺序；过滤纯数字、年份、分组标题词（如「原创曲」「殿堂曲」「传说曲」「25万以上」）和导航链接（查看/编辑/历史/刷新/简体/繁體 等）。
+- 输入非法（不是字符串、为空）：返回空列表。
+- 不在 spec 内的解析规则（如括号内注记、外链、管道后空白）不做额外清洗；后续切片按真实数据需要再扩展。
+
+### `fetch_song_list_from_template(year: int, *, base_url: str, timeout_seconds: int = 20) -> list[str]`
+
+旧的 HTML 版按模板页链接文本过滤歌曲名。本切片将其行为改为：
+
+1. 用 `MediaWikiClient` 获取 `Template:洛天依/<year>` 的 wikitext；
+2. 调用 `parse_song_titles_from_template` 返回歌曲名列表。
+
+异常行为：模板页缺失时抛出 `MediaWikiPageNotFoundError`，网络失败抛出 `MediaWikiRequestError`；由调用方（任务）记录失败。
+
 ## 当前跨模块兼容接口
 
 - `WishlistManager` 的愿望新增、查询、领取和状态更新方法目前被唱歌能力使用。
