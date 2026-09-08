@@ -60,6 +60,8 @@
 1. `url` 为 `api.php` 形式时，用 `MediaWikiClient` 获取 `Template:洛天依/<year>` 的 wikitext，再调用 `parse_song_titles_from_template` 返回歌曲名列表；
 2. MediaWiki 请求失败时回退到旧 HTML 解析路径（保持兼容），两者都失败时记录 warning 并返回空列表。
 
+`sync_daily_new_songs` 使用的 `TEMPLATE_URL` 已改为 api.php 形式（`https://vcpedia.cn/api.php?action=query&titles=Template:洛天依/<year>`），因此任务默认走 MediaWiki 路径。
+
 异常行为：`api.php` 形式 URL 对应的模板页缺失时，MediaWiki 路径抛 `MediaWikiPageNotFoundError` 并回退 HTML 解析；HTML 路径失败由内部记录。
 
 ## 当前跨模块兼容接口
