@@ -1,8 +1,12 @@
-"""覆盖率回归：两首在等价实现下抽不到歌词的页面，必须能被抽出歌词。
+"""覆盖率回归：两首在等价实现下抽不到歌词的页面，必须能抽出可检索的歌词。
 
 固化的 wikitext 为 VCPedia 真实页面响应（`tests/support/vcpedia_lyrics_recovery.json`）。
-这两个页面在迁移前的 HTML 实现下 `lyrics` 为空，属于"陌生格式取不到"的典型；本用例把它们
-从"取不到"变成"取得到"，并锁住该行为。
+这两个页面在迁移前的 HTML 实现下 `lyrics` 为空；本用例锁住"能取到"以及"取到的内容可用作
+关键词"两件事。
+
+说明：断言落在 `spaced_lyrics` 与关键词上，而不是"原文行数"。现存知识库里的 `lyrics`
+有 99.2% 是单行去标点形态，行结构并非稳定契约；对下游有意义的是关键词（见
+`docs/开发进程文档/vcpedia-keyword-baseline.md`）。
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from src.world.get_new_songs.daily_new_song_fetcher import _split_spaced_lyrics
 from src.world.get_new_songs.wikitext_parser import parse_details
 
 FIXTURES = json.loads(
@@ -30,10 +35,20 @@ def test_page_without_lyrics_before_now_yields_lyrics(title):
     assert str(data["lyrics"]).strip(), f"{title} 的歌词仍为空"
 
 
-def test_recovered_pages_keep_a_searchable_lyric_line():
-    """恢复出的歌词要包含可检索的完整行，而不是零散字符。"""
-    data = parse_details(FIXTURES["乐鸣东方"], "乐鸣东方")
-    lines = [line.strip() for line in str(data["lyrics"]).splitlines() if line.strip()]
+@pytest.mark.parametrize("title", RECOVERED)
+def test_recovered_lyrics_produce_keywords(title):
+    """恢复出的歌词必须能产出关键词，否则检索仍然认不出这首歌。"""
+    data = parse_details(FIXTURES[title], title)
+    keywords = _split_spaced_lyrics(str(data["spaced_lyrics"]))
 
-    assert len(lines) >= 8, f"歌词行数过少：{len(lines)}"
-    assert any(len(line) >= 6 for line in lines), "没有长度足够的完整行可供检索"
+    assert len(keywords) >= 6, f"{title} 只产出 {len(keywords)} 个关键词"
+    assert all(len(item) >= 6 for item in keywords)
+
+
+def test_recovered_page_keywords_are_distinctive_lines():
+    """抽查实际关键词，确认是歌词句而不是零散字符。"""
+    data = parse_details(FIXTURES["乐鸣东方"], "乐鸣东方")
+    keywords = _split_spaced_lyrics(str(data["spaced_lyrics"]))
+
+    assert len(keywords) >= 20
+    assert "何时来自云上" in keywords
