@@ -28,23 +28,29 @@ def _mark_counts(code):
     return marked
 
 
-def _kept_line(line):
-    """Keep the prose sentences — or, without sentence punctuation, the clauses — free of counts."""
-    if re.search(r"[。！？]", line):
-        return "".join(part for part in _SENTENCE.findall(line) if _COUNT_MARK not in part).strip()
-    kept = [clause.strip() for clause in _CLAUSE.split(line)
-            if clause.strip() and _COUNT_MARK not in clause]
-    return "，".join(kept)
+def _kept_line(line, *, parameter_line):
+    """Drop unexpandable counts from one line.
+
+    The policy follows the line's structure, not its punctuation: a template parameter value
+    keeps its other clauses, while a prose line drops the whole statistics sentence. A prose
+    line without sentence punctuation therefore loses everything it carries, instead of
+    surviving as a leftover clause such as "达成殿堂".
+    """
+    if parameter_line:
+        kept = [clause.strip() for clause in _CLAUSE.split(line)
+                if clause.strip() and _COUNT_MARK not in clause]
+        return "，".join(kept)
+    return "".join(part for part in _SENTENCE.findall(line) if _COUNT_MARK not in part).strip()
 
 
-def _kept_lines(text):
+def _kept_lines(text, *, parameter_line):
     """Filter one block line by line; a line that only carried counts disappears."""
     kept = []
     for line in text.splitlines():
         if _COUNT_MARK not in line:
             kept.append(line)
             continue
-        trimmed = _kept_line(line)
+        trimmed = _kept_line(line, parameter_line=parameter_line)
         if trimmed:
             kept.append(trimmed)
     return "\n".join(kept)
@@ -68,12 +74,12 @@ def material_text(source):
             value = str(param.value)
             if _COUNT_MARK not in value:
                 continue
-            kept = _kept_lines(value)
+            kept = _kept_lines(value, parameter_line=True)
             if kept:
                 param.value = kept
             else:
                 template.remove(param.name)
-    return _kept_lines(str(code))[:24000]
+    return _kept_lines(str(code), parameter_line=False)[:24000]
 
 
 def merge_missing(data, result, needed):
