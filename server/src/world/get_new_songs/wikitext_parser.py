@@ -451,7 +451,7 @@ def parse_details(source: str, title: str, *, with_missing=False) -> Dict:
     has_heading = False
     has_lyrics = False
 
-    def walk(value, section="", level=0, direct=False):
+    def walk(value, section="", level=0, direct=False, nested=False):
         nonlocal boxes, has_heading, has_lyrics
         code = _code(value)
         if any(isinstance(n, Text) and re.search(r"(?m)^=", str(n)) for n in code.nodes):
@@ -494,18 +494,21 @@ def parse_details(source: str, title: str, *, with_missing=False) -> Dict:
             if isinstance(node, Template):
                 kind = _kind(node)
                 if kind == "songbox":
-                    boxes += 1
-                    if boxes == 1:
-                        infobox.update(_fields(node, missing))
+                    # 参数值里出现的同名模板不是新的歌曲框，只是该参数的取值。
+                    if not nested:
+                        boxes += 1
+                        if boxes == 1:
+                            infobox.update(_fields(node, missing))
                     slots = {id(content): slot for slot, _, content in _contents(node)}
                     for param in node.params:
                         flush()
                         slot = slots.get(id(param.value), "")
                         has_lyrics |= slot == "歌词"
-                        walk(param.value, slot, direct=slot == "歌词")
+                        walk(param.value, slot, direct=slot == "歌词", nested=True)
                     continue
                 if kind == "staff":
-                    if boxes <= 1:
+                    # 首框到第二框之间的 staff 属于该信息框（可隔着简介标题）；首框之前的不算。
+                    if boxes == 1:
                         infobox.update(_fields(node, missing))
                     continue
                 if kind == "lyrics":
