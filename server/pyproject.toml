@@ -19,7 +19,7 @@ dependencies = [
     "jinja2",
     "librosa>=0.9.2,<0.10",
     "lunardate",
-    "mwparserfromhell>=0.7.2,<0.8",
+    "mwparserfromhell",
     "networkx",
     "numpy>=1.24,<2",
     "openai",

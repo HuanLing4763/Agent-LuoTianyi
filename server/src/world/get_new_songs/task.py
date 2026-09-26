@@ -30,14 +30,20 @@ class VCPediaNewSongTask(WorldTask):
         self.logger = get_logger(__name__)
         self.server_runtime: "ServerRuntime" | None = None
         self.llm_module: Any | None = None
+        self.extraction_llm_module: Any | None = None
 
     def initialize(self, server_runtime: "ServerRuntime") -> None:
         self.server_runtime = server_runtime
         crawler_cfg = self.config.get("crawler", {})
         module_cfg = crawler_cfg.get("llm_module")
+        extraction_cfg = crawler_cfg.get("extraction_llm_module")
         llm_service = server_runtime.llm_service
         if module_cfg and llm_service is not None:
             self.llm_module = llm_service.register_llm_module("song_knowledge_crawler", module_cfg)
+        if extraction_cfg and llm_service is not None:
+            self.extraction_llm_module = llm_service.register_llm_module(
+                "song_knowledge_extractor", extraction_cfg
+            )
 
     def ensure_dependencies(self) -> None:
         """检查新歌知识同步任务的基础依赖。"""
@@ -48,7 +54,11 @@ class VCPediaNewSongTask(WorldTask):
     async def run_once(self) -> WorldTaskResult:
         """收集候选并投递为世界事实；本任务不写入知识。"""
         try:
-            outcome = collect_new_song_candidates(self.config, llm_module=self.llm_module)
+            outcome = collect_new_song_candidates(
+                self.config,
+                llm_module=self.llm_module,
+                extraction_llm_module=self.extraction_llm_module,
+            )
         except Exception as exc:
             self.logger.warning(f"VCPedia new song sync failed: {exc}")
             return WorldTaskResult.failure(self.task_name, str(exc))

@@ -1,8 +1,8 @@
-"""迁移等价回归：解析产出必须与迁移前的固定期望一致。
+"""提取行为回归：记录哪些样例保持迁移前产出、哪些按契约有意改变。
 
-每条样例给出同一页面的人工配对 wikitext 源码、渲染 HTML 与期望产出。期望值是迁移前
-HTML 实现（`VCPediaFetcher._parse_page`）在这些样例上的产出，一次性固化在这里，测试本身
-不依赖 git 历史或已删除的实现。样例是人工配对，不是真实站点采样。
+每条样例给出人工配对的 wikitext 源码、渲染 HTML、迁移前实现的产出（`before`）与本切片契约
+要求的产出（`after`）；`after` 为 `None` 表示该样例不改变行为。期望值固化在这里，测试不依赖
+git 历史或已删除的实现。样例是人工配对，不是真实站点采样。
 """
 
 from __future__ import annotations
@@ -13,13 +13,15 @@ from src.world.get_new_songs.wikitext_parser import parse_details, parse_song_ti
 
 TITLE = "固定样例"
 
-# (wikitext 源码, 同一页面的渲染 HTML, 迁移前实现的产出)
-SAMPLES = [
+# (wikitext 源码, 渲染 HTML, 迁移前产出, 本切片契约产出或 None, 理由)
+DIVERGENCES = [
     (
         "{{VOCALOID_Songbox|演唱=洛天依|image=cover.jpg|width=300|style=red}}\n== 简介 ==\n人物正文。",
         '<table class="moe-infobox infobox"><tr><td>演唱</td><td>洛天依</td></tr></table>'
         "<h2>简介</h2><p>人物正文。</p>",
         {"type": "Person", "infobox": {"演唱": "洛天依"}, "summary": ["人物正文。"], "lyrics": "", "spaced_lyrics": ""},
+        None,
+        "无变化：单列信息框与首段简介沿用原选择。",
     ),
     (
         "== 简介 ==\n正文。\n{{创作者名单|group1=PV|list1=作者}}\n=== 背景 ===\n不可追加\n"
@@ -33,6 +35,12 @@ SAMPLES = [
             "type": "Song", "infobox": {"PV": "作者"}, "summary": ["正文。"],
             "lyrics": "第一句歌词 第二句歌词", "spaced_lyrics": "第一句歌词 第二句歌词",
         },
+        {
+            "type": "Song", "infobox": {"PV": "作者"}, "summary": ["正文。\n不可追加"],
+            "lyrics": "散文第一句歌词\n第二句歌词（副歌）\n尾声",
+            "spaced_lyrics": "散文第一句歌词\n第二句歌词（副歌）\n尾声",
+        },
+        "歌词保留原文行、括号与和声，不再压成一行并删括号；简介纳入同级子标题段落。",
     ),
     (
         "== 简介 ==\n开头。截至现在有123次播放，45次收藏。结尾。\n== 歌词 ==\n普通正文并非poem\n"
@@ -44,11 +52,18 @@ SAMPLES = [
             "type": "Song", "infobox": {}, "summary": ["开头。。结尾。"],
             "lyrics": "甲乙", "spaced_lyrics": "甲乙",
         },
+        {
+            "type": "Song", "infobox": {}, "summary": ["开头。截至现在有123次播放，45次收藏。结尾。"],
+            "lyrics": "甲（副歌）\n乙", "spaced_lyrics": "甲（副歌）\n乙",
+        },
+        "简介不再按固定词删除统计句（统计句改由计数政策处理）；歌词保留括号，br 转为换行。",
     ),
     (
         "<poem>无标题歌词</poem>\n=== 歌词 ===\n<poem>三级标题</poem>",
         '<div class="poem"><p>无标题歌词</p></div><h3>歌词</h3><div class="poem"><p>三级标题</p></div>',
         {"type": "Person", "infobox": {}, "summary": [], "lyrics": "", "spaced_lyrics": ""},
+        {"type": "Song", "infobox": {}, "summary": [""], "lyrics": "三级标题", "spaced_lyrics": "三级标题"},
+        "三级标题下的歌词可识别，页面因此判为 Song（原实现只看 h2）。",
     ),
     (
         "== 歌词 ==\n<poem>旧版</poem>\n== 新版歌词 ==\n<poem>新版一\n新版二</poem>",
@@ -58,30 +73,31 @@ SAMPLES = [
             "type": "Song", "infobox": {}, "summary": [""],
             "lyrics": "新版一 新版二", "spaced_lyrics": "新版一 新版二",
         },
+        {"type": "Song", "infobox": {}, "summary": [""], "lyrics": "旧版", "spaced_lyrics": "旧版"},
+        "取源码顺序的首个歌词候选，不再按标题名挑版本。",
     ),
 ]
 
 
-@pytest.mark.parametrize("source,html,expected", SAMPLES)
-def test_wikitext_parsing_keeps_pre_migration_output(source, html, expected):
-    assert parse_details(source, TITLE) == {"name": TITLE, **expected}
+@pytest.mark.parametrize("source,html,before,after,reason", DIVERGENCES)
+def test_divergence_matches_the_recorded_contract(source, html, before, after, reason):
+    expected = before if after is None else after
+
+    assert parse_details(source, TITLE) == {"name": TITLE, **expected}, reason
 
 
-@pytest.mark.parametrize("source,html,expected", SAMPLES)
-def test_samples_cover_the_documented_result_fields(source, html, expected):
-    """期望值本身就覆盖了对外契约的字段集合，避免断言退化成空比较。"""
-    assert set(expected) == {"type", "infobox", "summary", "lyrics", "spaced_lyrics"}
-    assert any(value for value in expected.values()), "样例必须有实际内容，不能全是空值"
+def test_every_divergence_is_documented():
+    """差异清单本身可审阅：每条都要写明理由，且至少一条是有意改变。"""
+    assert all(entry[4].strip() for entry in DIVERGENCES)
+    assert any(entry[3] is not None for entry in DIVERGENCES)
 
 
-def test_comparison_rejects_a_different_page():
-    """确认上面的比对有分辨力：换一页的同名字段必须不同。"""
-    first = parse_details(SAMPLES[2][0], TITLE)
-    other = parse_details("== 简介 ==\n完全不同的正文。\n== 歌词 ==\n<poem>别的歌词</poem>", TITLE)
+def test_unchanged_case_still_matches_pre_migration_output():
+    """清单必须包含仍等价的样例，否则等于把所有变化都当成合理。"""
+    source, _html, before, after, _reason = DIVERGENCES[0]
 
-    assert first["lyrics"] != other["lyrics"]
-    assert first["summary"] != other["summary"]
-    assert first["lyrics"], "示例页必须解析出非空歌词，否则断言没有分辨力"
+    assert after is None
+    assert parse_details(source, TITLE) == {"name": TITLE, **before}
 
 
 LIST_SOURCE = """{{Navbox|title=[[洛天依]]|group1=[[原创曲]]|list1=
@@ -93,6 +109,6 @@ LIST_SOURCE = """{{Navbox|title=[[洛天依]]|group1=[[原创曲]]|list1=
 LIST_EXPECTED = ["显示名", "别名", "说明", "锚点", "外部曲", "用户:甲", "正常曲"]
 
 
-def test_template_list_keeps_pre_migration_display_names():
-    """列表入口仍产出同一批显示名：顺序、星号剥离与导航链接过滤都不变。"""
+def test_song_list_display_names_are_unchanged():
+    """列表显示名不属于提取改动范围，必须与迁移前一致。"""
     assert parse_song_titles(LIST_SOURCE) == LIST_EXPECTED

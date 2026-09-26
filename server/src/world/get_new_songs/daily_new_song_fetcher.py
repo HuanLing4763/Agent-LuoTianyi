@@ -134,6 +134,8 @@ def content_revision(candidate: NewSongCandidate) -> int:
 def collect_new_song_candidates(
     song_knowledge_config: Dict[str, Any],
     llm_module: Any | None = None,
+    *,
+    extraction_llm_module: Any | None = None,
 ) -> Dict[str, Any]:
     """抓取、规范化并做来源检查；本函数不写入任何知识。
 
@@ -156,7 +158,8 @@ def collect_new_song_candidates(
     fetch_failed: List[str] = []
     try:
         songs = fetch_song_list_from_template(TEMPLATE_URL)
-        fetcher = VCPediaFetcher(crawler_cfg, llm_module=llm_module)
+        fetcher = VCPediaFetcher(crawler_cfg, llm_module=llm_module,
+                                 extraction_llm_module=extraction_llm_module)
 
         for song_name in songs:
             if _song_exists(db, song_name):

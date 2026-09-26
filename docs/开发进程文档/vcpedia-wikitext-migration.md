@@ -54,7 +54,7 @@
 
 ### 关键技术选型
 
-- 解析库使用 `mwparserfromhell`（MIT，无传递依赖），替代原先的 BeautifulSoup HTML 解析；依赖写入 `server/pyproject.toml`。
+- 解析库使用 `mwparserfromhell`（MIT，无传递依赖），替代原先的 BeautifulSoup HTML 解析；依赖按仓库惯例只声明包名，写入 `server/pyproject.toml`。
 - 传输身份使用应用自述 UA。实测站点部署了 Anubis 1.27.0 校验：冒充浏览器的 UA 会被 403 拦截，自述身份的客户端可正常返回。
 - curl 兜底用于站点挑战场景，携带同一 UA 且不使用 shell。
 

@@ -15,9 +15,12 @@ from src.utils.logger import get_logger
 from src.utils.helpers import load_config
 from src.world.get_new_songs.wiki_api import fetch_wikitext, user_agent
 from src.world.get_new_songs.wikitext_parser import parse_details
+from src.world.get_new_songs.source_extraction import collect_materials, merge_missing
+from src.world.get_new_songs.text_conversion import convert_text
 
 class VCPediaFetcher:
-    def __init__(self, config: Dict[str, Any], llm_module: Any | None = None):
+    def __init__(self, config: Dict[str, Any], llm_module: Any | None = None,
+                 *, extraction_llm_module: Any | None = None):
         self.logger = get_logger(__name__)
         self.config = config
         self.activated = config.get("activated", False)
@@ -27,6 +30,7 @@ class VCPediaFetcher:
         self.llm_cfg = config.get("llm", {})
         self.use_llm = config.get("use_llm", False)
         self.llm_module = llm_module
+        self.extraction_llm_module = extraction_llm_module
         self.llm_client = None
 
         # Define directories to search
@@ -37,10 +41,10 @@ class VCPediaFetcher:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent()})
 
-    def fetch_entity_description(self, entity_name: str, short_summary: bool = True) -> Dict[str, Any]:
+    def fetch_entity_description(self, entity_name: str, short_summary: bool = True, *, source_title: str | None = None) -> Dict[str, Any]:
         """
         Fetch entity description from cache or VCPedia.
-        Returns a JSON string of the entity data or empty string if not found.
+        Returns the complete detail dict; disabled returns empty string, failure None.
         """
         if not self.activated:
             return ""
@@ -52,59 +56,64 @@ class VCPediaFetcher:
 
         # 2. Crawl
         self.logger.info(f"Trying to crawl {entity_name} from VCPedia...")
-        source = self._fetch_page(entity_name)
+        title = source_title if source_title is not None else entity_name
+        source = self._fetch_page(title)
         if source is not None:
             try:
-                data = parse_details(source, entity_name)
+                data, needed = parse_details(source, entity_name, with_missing=True)
                 if data:
+                    materials = collect_materials(data, needed, source,
+                        self.base_url, title, self.session.get, post=self.session.post)
+                    if self.use_llm and any(needed.values()) and self.extraction_llm_module is not None:
+                        self._extract_missing(data, needed, materials)
                     if data["type"] == "Song":
-                        data["short_summary"] = self._llm_summarize(data)
+                        data["short_summary"] = self._summarize(data)
                     return data
             except Exception as e:
                 self.logger.error(f"Error parsing {entity_name}: {e}")
         
         return None
     
-    def _llm_summarize(self, data: Dict[str, Any]) -> str:
-        summary_raw = "\n".join([str(x) for x in data.get("summary", []) if x])
-        fallback = summary_raw[:100].strip() if summary_raw else ""
-        if not data:
-            return fallback
-
-        if self.use_llm and self.llm_module is not None:
-            try:
-                data_payload = json.dumps(data, ensure_ascii=False, default=str)
-                result = asyncio.run(self.llm_module.generate_response(song_data=data_payload))
-                result = str(result or "").strip()
-                return result if result else fallback
-            except Exception as e:
-                self.logger.error(f"LLM summarize failed: {e}")
-                return fallback
-
-        return fallback
+    @staticmethod
+    def _call_model(module, **kwargs):
+        def run():
+            return asyncio.run(module.generate_response(**kwargs))
 
         try:
-            if not self.use_llm or self.llm_client is None:
-                self.logger.error("knowledge.llm 配置缺失，使用回退摘要")
-                return fallback
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return run()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(run).result()
 
-            
-            data_payload = json.dumps(data, ensure_ascii=False, default=str)
-            prompt = (
-                "请基于以下歌曲数据(JSON)总结为不超过120字的中文，且仅保留三类信息："
-                "1) 发布者(UP主)/演唱者/作词作曲等核心制作信息；"
-                "2) 歌曲意义(如所属系列、重要演出或传播节点)；"
-                "3) 歌曲主旨与大意。"
-                "不要输出无关统计信息，不要编造。\n\n"
-                f"歌曲数据：{data_payload}\n\n"
-                "请直接输出摘要正文。"
-            )
-            return fallback
-            result = ((result or {}).get("content", "") if isinstance(result, dict) else str(result)).strip()
-            return result if result else fallback
-        except Exception as e:
-            self.logger.error(f"LLM summarize failed: {e}")
-            return fallback
+    def _extract_missing(self, data, needed, materials):
+        try:
+            result = self._call_model(
+                self.extraction_llm_module,
+                song_data=json.dumps(data, ensure_ascii=False, default=str),
+                needed=json.dumps(needed, ensure_ascii=False),
+                materials=json.dumps(materials, ensure_ascii=False))
+            if isinstance(result, str):
+                if len(result) > 24000:
+                    raise ValueError("Extraction response exceeds 24000 characters")
+                result = json.loads(result)
+            if not isinstance(result, dict):
+                raise ValueError("Extraction response must be a JSON object")
+            merge_missing(data, result, needed)
+        except Exception as exc:
+            self.logger.warning(f"Optional VCPedia extraction failed: {exc}")
+
+    def _summarize(self, data):
+        if self.use_llm and self.llm_module is not None:
+            try:
+                result = self._call_model(
+                    self.llm_module, song_data=json.dumps(data, ensure_ascii=False, default=str))
+                if isinstance(result, str) and result.strip():
+                    return convert_text(result.strip())
+            except Exception as exc:
+                self.logger.error(f"LLM song summary failed: {exc}")
+        summary_raw = "\n".join(str(x) for x in data.get("summary", []) if x)
+        return summary_raw[:100].strip()
 
     def _check_cache(self, entity_name: str) -> Optional[Dict[str, Any]]:
         # Normalize name for filename
@@ -120,12 +129,12 @@ class VCPediaFetcher:
         return None
 
     def _fetch_page(self, page_name: str) -> Optional[str]:
-        """取页面 wikitext 源码；API 失败或挑战未通过时返回 None。"""
         try:
             return fetch_wikitext(self.base_url, page_name, self.session.get, 10)
-        except Exception as e:
-            self.logger.error(f"Error fetching {page_name} from VCPedia API: {e}")
+        except Exception as exc:
+            self.logger.error(f'Error fetching {page_name}: {exc}')
             return None
+
 
     def _save_data(self, data: Dict[str, Any]):
         save_dir = self.default_save_dir
