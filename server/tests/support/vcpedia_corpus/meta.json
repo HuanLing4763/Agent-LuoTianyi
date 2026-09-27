@@ -1,0 +1,881 @@
+{
+ "Estrus Cycle": {
+  "file": "Estrus_Cycle.wikitext",
+  "templates": [
+   "bilibilivideo",
+   "cquote",
+   "lj",
+   "lyricskai",
+   "vocaloid songbox",
+   "心华/2016",
+   "文字描边",
+   "标题替换",
+   "野良犬p"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-01-30",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:vcpedia_frozen_consecutive.json"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 662,
+   "summary_nonempty": true,
+   "infobox_n": 5,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "Foxy": {
+  "file": "Foxy.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "columns-list",
+   "ghostfinal",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "洛天依/2018",
+   "潜移默化p"
+  ],
+  "editor": "Fiction Blue",
+  "edit_ts": "2025-12-28",
+  "edits_recent": 1,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 0,
+   "summary_nonempty": true,
+   "infobox_n": 14,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": true
+   }
+  }
+ },
+ "I LOVE YOU(Adaa)": {
+  "file": "I_LOVE_YOU_Adaa.wikitext",
+  "templates": [
+   "about",
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "font",
+   "ldc",
+   "lyricskai",
+   "photrans",
+   "photrans/button",
+   "tabs",
+   "texthover",
+   "vocaloid songbox",
+   "标题替换",
+   "洛天依/2020",
+   "虚拟歌手系列作品/少年少女pillow症候群系列"
+  ],
+  "editor": "Meng-LX",
+  "edit_ts": "2026-05-07",
+  "edits_recent": 65,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 278,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": true
+   }
+  }
+ },
+ "Sharing The World": {
+  "file": "Sharing_The_World.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "lj",
+   "lyricskai",
+   "lyricskai/hover",
+   "niconicocount",
+   "tabs/core",
+   "vocaloid songbox",
+   "youtubecount",
+   "初音未来/2016及以前",
+   "初音未来/2018",
+   "初音未来/2019",
+   "虚拟歌手歌曲荣誉题头",
+   "需要翻译",
+   "黑幕"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-05-13",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 617,
+   "summary_nonempty": true,
+   "infobox_n": 7,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": true
+   }
+  }
+ },
+ "亚种": {
+  "file": "亚种.wikitext",
+  "templates": [
+   "vocaloid亚种",
+   "不完整",
+   "到维基百科",
+   "用语信息",
+   "黑幕"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-07-25",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Person",
+   "lyrics_len": 0,
+   "summary_nonempty": false,
+   "infobox_n": 0,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "凌晨四时 零下四度": {
+  "file": "凌晨四时_零下四度.wikitext",
+  "templates": [
+   "ace中文殿堂曲题头",
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "cquote",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "停电前夜",
+   "洛天依/2024"
+  ],
+  "editor": "CreeperCHEN2",
+  "edit_ts": "2025-11-02",
+  "edits_recent": 48,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 695,
+   "summary_nonempty": true,
+   "infobox_n": 16,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "刀马旦(虚拟歌手)": {
+  "file": "刀马旦_虚拟歌手.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "charablock",
+   "color",
+   "dead",
+   "ldc",
+   "vocaloid songbox",
+   "vocaloid中文殿堂曲题头",
+   "乐正龙牙/2020",
+   "标题格式化",
+   "纳兰寻风",
+   "言和/2020"
+  ],
+  "editor": "学生bot",
+  "edit_ts": "2026-01-24",
+  "edits_recent": 23,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:vcpedia_fixed_acceptance.json"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 480,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "周刊Synthesizer V排行榜72": {
+  "file": "周刊Synthesizer_V排行榜72.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "synthesizer v ranking",
+   "synthesizer v ranking/bricks-old",
+   "周刊synthesizer v排行榜"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-08-19",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Person",
+   "lyrics_len": 0,
+   "summary_nonempty": false,
+   "infobox_n": 0,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "周刊VOCALOID中文排行榜449": {
+  "file": "周刊VOCALOID中文排行榜449.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "vocaloid chinese ranking",
+   "vocaloid chinese ranking/bricks",
+   "周刊vocaloid中文排行榜",
+   "黑幕"
+  ],
+  "editor": "JackBlock",
+  "edit_ts": "2026-07-07",
+  "edits_recent": 13,
+  "origins": [
+   "tag:vcpedia_frozen_consecutive.json"
+  ],
+  "baseline": {
+   "type": "Person",
+   "lyrics_len": 0,
+   "summary_nonempty": false,
+   "infobox_n": 0,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "唱给雅音宫羽": {
+  "file": "唱给雅音宫羽.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "cquote",
+   "jk",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "vocaloid中文殿堂曲题头",
+   "洛天依/2012",
+   "纯白",
+   "薇采之依"
+  ],
+  "editor": "Meng-LX",
+  "edit_ts": "2026-09-02",
+  "edits_recent": 65,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 369,
+   "summary_nonempty": true,
+   "infobox_n": 13,
+   "needed": {
+    "infobox": [],
+    "summary": true,
+    "lyrics": false
+   }
+  }
+ },
+ "山塘恋雨": {
+  "file": "山塘恋雨.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "cquote",
+   "refn",
+   "ruby",
+   "tabs",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "切换显示",
+   "切换显示按钮",
+   "切换显示按钮样式",
+   "洛天依/2022",
+   "洛天依/2024",
+   "砖厂浪人",
+   "花间有鹿来",
+   "虚拟歌手系列作品/依梦洛拾",
+   "鬼面p"
+  ],
+  "editor": "氢化脱氰氰酸",
+  "edit_ts": "2026-03-05",
+  "edits_recent": 1,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 548,
+   "summary_nonempty": true,
+   "infobox_n": 15,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": true
+   }
+  }
+ },
+ "当我想哭的时候厕所里总是有黄金": {
+  "file": "当我想哭的时候厕所里总是有黄金.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "ldc",
+   "synthesizer v中文殿堂曲题头",
+   "vocaloid songbox",
+   "惊世骇俗",
+   "诗岸/2026"
+  ],
+  "editor": "不可逆",
+  "edit_ts": "2026-03-15",
+  "edits_recent": 23,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 407,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "我生于死去之日。": {
+  "file": "我生于死去之日.wikitext",
+  "templates": [
+   "ace中文殿堂曲题头",
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "ruby",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "奥莉安多",
+   "洛天依/2025"
+  ],
+  "editor": "Meng-LX",
+  "edit_ts": "2026-07-16",
+  "edits_recent": 65,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 491,
+   "summary_nonempty": true,
+   "infobox_n": 13,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "我还活着": {
+  "file": "我还活着.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "ldc",
+   "music163",
+   "vocaloid songbox",
+   "洛天依/2026"
+  ],
+  "editor": "CreeperCHEN2",
+  "edit_ts": "2026-05-12",
+  "edits_recent": 48,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 371,
+   "summary_nonempty": true,
+   "infobox_n": 7,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "普罗米修斯": {
+  "file": "普罗米修斯.wikitext",
+  "templates": [
+   "disambig"
+  ],
+  "editor": "CreeperCHEN2",
+  "edit_ts": "2026-04-23",
+  "edits_recent": 48,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Person",
+   "lyrics_len": 0,
+   "summary_nonempty": false,
+   "infobox_n": 0,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "普通DISCO": {
+  "file": "普通DISCO.wikitext",
+  "templates": [
+   "#vardefine:ldc",
+   "4columns",
+   "a",
+   "bilibilicount",
+   "bilibilivideo",
+   "charablock",
+   "cite web",
+   "color",
+   "cquote",
+   "hide",
+   "ilem",
+   "info",
+   "mousetext",
+   "pagename",
+   "ruby",
+   "stringsearch",
+   "tabs/core",
+   "tochide",
+   "youtubevideo",
+   "“永久成就!!”周刊虚拟歌手中文曲排行榜",
+   "交叉颜色",
+   "洛天依/2015",
+   "言和/2015",
+   "音游曲信息/musync",
+   "黑幕"
+  ],
+  "editor": "JinyiDog",
+  "edit_ts": "2026-09-19",
+  "edits_recent": 30,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:recorded_lyrics"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 648,
+   "summary_nonempty": true,
+   "infobox_n": 2,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "横竖撇点折": {
+  "file": "横竖撇点折.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "hide",
+   "infobox song",
+   "jk",
+   "ldc",
+   "papaw泡泡",
+   "st",
+   "tabs",
+   "黑幕"
+  ],
+  "editor": "语星308",
+  "edit_ts": "2026-08-25",
+  "edits_recent": 36,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 475,
+   "summary_nonempty": true,
+   "infobox_n": 8,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "此刻说再见": {
+  "file": "此刻说再见.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "ldc",
+   "vocaloid songbox",
+   "洛天依/2022",
+   "黑方serge"
+  ],
+  "editor": "JackBlock",
+  "edit_ts": "2025-10-11",
+  "edits_recent": 13,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:vcpedia_frozen_consecutive.json"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 393,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "疑神疑鬼": {
+  "file": "疑神疑鬼.wikitext",
+  "templates": [
+   "anchor",
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "cquote",
+   "tabs/core",
+   "vocaloid songbox",
+   "vocaloid中文殿堂曲题头",
+   "咏吟轩",
+   "言和/2014",
+   "言和/2026",
+   "跳蝻p",
+   "黑幕"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-06-18",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 707,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "礼物pre-Sent": {
+  "file": "礼物pre-Sent.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "cquote",
+   "creuzer",
+   "ls",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "乐正绫/2023",
+   "坐标p",
+   "文字描边",
+   "纪远"
+  ],
+  "editor": "Fiction Blue",
+  "edit_ts": "2026-01-04",
+  "edits_recent": 1,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 378,
+   "summary_nonempty": true,
+   "infobox_n": 16,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "社畜烧酒": {
+  "file": "社畜烧酒.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "chilichill",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "vocaloid中文殿堂曲题头",
+   "交叉颜色n",
+   "洛天依/2020"
+  ],
+  "editor": "学生bot",
+  "edit_ts": "2026-01-20",
+  "edits_recent": 23,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 0,
+   "summary_nonempty": true,
+   "infobox_n": 12,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": true
+   }
+  }
+ },
+ "秦宣四方": {
+  "file": "秦宣四方.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "ruby",
+   "synthesizer v中文殿堂曲题头",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "忘川风华录",
+   "沨漪",
+   "瑞安ryan",
+   "虚拟歌手系列作品/忘川风华录"
+  ],
+  "editor": "0wzyt1",
+  "edit_ts": "2026-09-22",
+  "edits_recent": 9,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:vcpedia_fixed_acceptance.json"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 282,
+   "summary_nonempty": true,
+   "infobox_n": 19,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "纸飞机(GhostFinal)": {
+  "file": "纸飞机_GhostFinal.wikitext",
+  "templates": [
+   "about",
+   "bilibilicount",
+   "bilibilivideo",
+   "color",
+   "ghostfinal",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "vocaloid中文殿堂曲题头",
+   "杏花包子",
+   "标题格式化",
+   "洛天依/2012",
+   "洛天依/2022",
+   "跳蝻p"
+  ],
+  "editor": "维克劳德",
+  "edit_ts": "2026-01-12",
+  "edits_recent": 29,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:vcpedia_fixed_acceptance.json"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 512,
+   "summary_nonempty": true,
+   "infobox_n": 11,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "致闪耀的你": {
+  "file": "致闪耀的你.wikitext",
+  "templates": [
+   "ace中文殿堂曲题头",
+   "bilibilicount",
+   "bilibilivideo",
+   "cquote",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "小熠ivac",
+   "文字描边",
+   "洛天依/2025",
+   "被巡回",
+   "闪耀的producer"
+  ],
+  "editor": "JackBlock",
+  "edit_ts": "2026-09-18",
+  "edits_recent": 13,
+  "origins": [
+   "replay:run-3b548a8817",
+   "random-review"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 698,
+   "summary_nonempty": true,
+   "infobox_n": 14,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "达拉崩吧": {
+  "file": "达拉崩吧.wikitext",
+  "templates": [
+   "2columns",
+   "bilibilicount",
+   "bilibilivideo",
+   "charablock",
+   "clear",
+   "color",
+   "cquote",
+   "hide",
+   "ilem",
+   "ldc",
+   "main",
+   "ruby",
+   "toggle",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "vocaloid中文传说曲题头",
+   "vocaloid中文神话曲题头",
+   "youtubecount",
+   "“永久成就!!”周刊虚拟歌手中文曲排行榜",
+   "交叉颜色",
+   "剧透",
+   "洛天依/2017",
+   "言和/2017",
+   "黑幕"
+  ],
+  "editor": "JinyiDog",
+  "edit_ts": "2026-08-22",
+  "edits_recent": 30,
+  "origins": [
+   "replay:run-37a454d954",
+   "tag:recorded_lyrics"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 640,
+   "summary_nonempty": true,
+   "infobox_n": 6,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ },
+ "长平传": {
+  "file": "长平传.wikitext",
+  "templates": [
+   "bilibilicount",
+   "bilibilivideo",
+   "charablock",
+   "color",
+   "cquote",
+   "defaultsort:chang",
+   "hide",
+   "ruby",
+   "vocaloid songbox",
+   "vocaloid songbox introduction",
+   "他城p",
+   "替换侧边栏底图",
+   "永夜minus",
+   "白光raphaelwalty",
+   "背景图片",
+   "赤羽/2022"
+  ],
+  "editor": "学生bot",
+  "edit_ts": "2026-08-10",
+  "edits_recent": 23,
+  "origins": [
+   "replay:run-37a454d954"
+  ],
+  "baseline": {
+   "type": "Song",
+   "lyrics_len": 760,
+   "summary_nonempty": true,
+   "infobox_n": 32,
+   "needed": {
+    "infobox": [],
+    "summary": false,
+    "lyrics": false
+   }
+  }
+ }
+}
