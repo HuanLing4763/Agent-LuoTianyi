@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from zipfile import ZipFile
 
-
 SERVER_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -45,6 +44,7 @@ def test_wheel_contains_regular_and_namespace_packages(tmp_path: Path) -> None:
         "src/agent/skills/cognitive/response_generation.py",
         "src/infrastructure/persistence/song_knowledge.py",
         "src/world/get_new_songs/task.py",
+        "src/world/get_new_songs/vcpedia_templates.json",
         "src/world/learn_sing_songs/task.py",
         "src/world/types/task_result.py",
     } <= members

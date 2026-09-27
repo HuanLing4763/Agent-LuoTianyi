@@ -10,7 +10,7 @@ from src.utils.logger import get_logger
 from .template_rules import descriptor, field_key, structure, template_name
 from .text_conversion import convert_text, spaced_from
 from .wiki_api import render_fragment
-from .wikitext_parser import NON_CONTENT_TAGS, heading_section, is_embed, sectioned_code
+from .wikitext_parser import NON_CONTENT_TAGS, heading_section, is_embed, mark_counts, sectioned_code
 
 _MARKUP = re.compile(r"\[\[|'''|\{\{")
 _COUNT_MARK = "\ufff0"
@@ -18,16 +18,6 @@ _SENTENCE = re.compile(r"[^。！？\n]+[。！？]?|\n")
 _CLAUSE = re.compile(r"[，,；;]")
 
 _NEEDED_BY_SECTION = {"简介": "summary", "歌词": "lyrics"}
-
-
-def _mark_counts(code):
-    """Replace every ``count`` template in place; report whether anything was replaced."""
-    marked = False
-    for template in list(code.filter_templates()):
-        if template_name(template.name).endswith("count"):
-            code.replace(template, _COUNT_MARK, recursive=True)
-            marked = True
-    return marked
 
 
 def _kept_line(line, *, parameter_line):
@@ -69,7 +59,7 @@ def material_text(source):
     """
     text = convert_text(source)
     code = mw.parse(text)
-    if not _mark_counts(code):
+    if not mark_counts(code):
         return text[:24000]
     for template in list(code.filter_templates()):
         for param in list(template.params):
@@ -207,27 +197,30 @@ def _rendered_fragment(base_url, title, call, post, limit):
     return soup.get_text("\n", strip=True)[:limit]
 
 
-def collect_materials(data, needed, source, base_url, title, get, *, post=None):
-    """Render the needed fragments, merge them locally, and hand the model the material.
+def collect_materials(data, needed, source, base_url, title, *, post=None, merge_fragments=True):
+    """按配置合并可渲染片段，并构造补提模型材料。
 
     A rendered fragment is a finished site value, so the program merges it itself and never
     forwards it as model material. The material the model receives is ``material_text``: the
     source after the one glyph conversion, without the statistics the program cannot expand.
     Protected LC/nowiki glyphs are already final there, so answers need no second conversion
-    (see ``merge_missing``).
+    (see ``merge_missing``). 片段合并与模型材料互相独立：前者由 ``merge_fragments`` 控制
+    （配置项 crawler.merge_rendered_fragments），后者只在确有缺项时构造。
     """
+    materials = {}
     if not any(needed.values()):
-        return {}
-    materials = {"text": material_text(source)}
-    remaining = 12000
-    for call, targets in _target_fragments(source, needed):
-        try:
-            text = _rendered_fragment(base_url, title, call, post, remaining)
-            if text:
-                remaining -= len(text)
-                merge_missing(data, {key: [text] if key == "summary" else text for key in targets}, needed)
-        except Exception as exc:
-            get_logger(__name__).warning(f"Optional VCPedia fragment failed: {exc}")
-        if remaining <= 0:
-            break
+        return materials
+    if merge_fragments:
+        remaining = 12000
+        for call, targets in _target_fragments(source, needed):
+            try:
+                text = _rendered_fragment(base_url, title, call, post, remaining)
+                if text:
+                    remaining -= len(text)
+                    merge_missing(data, {key: [text] if key == "summary" else text for key in targets}, needed)
+            except Exception as exc:
+                get_logger(__name__).warning(f"Optional VCPedia fragment failed: {exc}")
+            if remaining <= 0:
+                break
+    materials["text"] = material_text(source)
     return materials

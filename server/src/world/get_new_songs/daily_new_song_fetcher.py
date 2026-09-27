@@ -73,6 +73,9 @@ def _split_spaced_lyrics(spaced_lyrics: str) -> List[str]:
     ret = []
     for part in parts:
         cleaned = part.strip()
+        # 含 "=>" 的片段会破坏 keyword=>value 索引行的格式（验收标准 16）。
+        if "=>" in cleaned:
+            continue
         if len(cleaned) >= 6 and len(cleaned) <= 50:
             ret.append(cleaned)
     return ret

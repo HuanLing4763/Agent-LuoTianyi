@@ -63,10 +63,15 @@ class VCPediaFetcher:
             try:
                 data, needed = parse_details(source, entity_name, with_missing=True)
                 if data:
-                    materials = collect_materials(data, needed, source,
-                        self.base_url, title, self.session.get, post=self.session.post)
-                    if self.use_llm and any(needed.values()) and self.extraction_llm_module is not None:
-                        self._extract_missing(data, needed, materials)
+                    # 片段合并与补提模型互相独立：前者受配置开关控制，后者还需
+                    # use_llm 与已注册的补提模块；两者皆关时不产生任何外部访问。
+                    merge_fragments = bool(self.config.get("merge_rendered_fragments", True))
+                    wants_llm = self.use_llm and self.extraction_llm_module is not None
+                    if merge_fragments or wants_llm:
+                        materials = collect_materials(data, needed, source, self.base_url, title,
+                                                      post=self.session.post, merge_fragments=merge_fragments)
+                        if wants_llm and any(needed.values()):
+                            self._extract_missing(data, needed, materials)
                     if data["type"] == "Song":
                         data["short_summary"] = self._summarize(data)
                     return data
@@ -137,27 +142,8 @@ class VCPediaFetcher:
             return None
 
 
-    def _save_data(self, data: Dict[str, Any]):
-        save_dir = self.default_save_dir
 
-        save_dir.mkdir(parents=True, exist_ok=True)
 
-        safe_title = "".join([c for c in data['name'] if c.isalnum() or c in (' ', '-', '_')]).strip()
-        file_path = save_dir / f"{safe_title}.json"
-
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            self.logger.info(f"Saved {data['name']} to {file_path}")
-        except Exception as e:
-            self.logger.error(f"Error saving data to {file_path}: {e}")
-
-    def _format_data(self, data: Dict[str, Any], short_summary:bool = True) -> str:
-        if short_summary:
-            data.pop("summary", None)
-        else:
-            data.pop("short_summary", None)
-        return json.dumps(data, ensure_ascii=False)
 
 if __name__ == "__main__":
     # Example usage

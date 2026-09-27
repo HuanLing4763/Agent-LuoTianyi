@@ -32,6 +32,7 @@ def test_staff_adjacent_to_the_first_songbox_is_kept():
 @pytest.mark.parametrize("blank", ["\n", "\n\n\n"])
 def test_blank_lines_between_box_and_staff_keep_adjacency(blank):
     """空行不算中间内容，相邻关系仍然成立。"""
-    source = f"{{{{VOCALOID_Songbox|演唱=洛天依}}}}{blank}{{{{创作者名单|group1=PV|list1=相邻作者}}}}\n== 简介 ==\n正文。"
+    source = (f"{{{{VOCALOID_Songbox|演唱=洛天依}}}}{blank}"
+              f"{{{{创作者名单|group1=PV|list1=相邻作者}}}}\n== 简介 ==\n正文。")
 
     assert parse_details(source, TITLE)["infobox"] == {"演唱": "洛天依", "PV": "相邻作者"}

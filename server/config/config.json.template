@@ -528,7 +528,7 @@
                 },
                 "extraction_llm_module": {
                     "llm": {
-                        "name": "qwen3.5-plus",
+                        "name": "dsv4-flash",
                         "enable_thinking": false,
                         "use_json": true
                     },

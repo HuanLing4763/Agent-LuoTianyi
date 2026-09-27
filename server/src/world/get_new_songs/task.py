@@ -34,15 +34,14 @@ class VCPediaNewSongTask(WorldTask):
 
     def initialize(self, server_runtime: "ServerRuntime") -> None:
         self.server_runtime = server_runtime
+        # LLM 注册只依赖 llm_service；server_runtime 的其余使用集中在 world stage。
+        self._llm_service = server_runtime.llm_service
         crawler_cfg = self.config.get("crawler", {})
-        module_cfg = crawler_cfg.get("llm_module")
-        extraction_cfg = crawler_cfg.get("extraction_llm_module")
-        llm_service = server_runtime.llm_service
-        if module_cfg and llm_service is not None:
-            self.llm_module = llm_service.register_llm_module("song_knowledge_crawler", module_cfg)
-        if extraction_cfg and llm_service is not None:
-            self.extraction_llm_module = llm_service.register_llm_module(
-                "song_knowledge_extractor", extraction_cfg
+        if crawler_cfg.get("llm_module") and self._llm_service is not None:
+            self.llm_module = self._llm_service.register_llm_module("song_knowledge_crawler", crawler_cfg["llm_module"])
+        if crawler_cfg.get("extraction_llm_module") and self._llm_service is not None:
+            self.extraction_llm_module = self._llm_service.register_llm_module(
+                "song_knowledge_extractor", crawler_cfg["extraction_llm_module"]
             )
 
     def ensure_dependencies(self) -> None:

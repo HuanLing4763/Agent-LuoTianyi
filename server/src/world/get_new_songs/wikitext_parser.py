@@ -321,18 +321,23 @@ def _joined_text(code, gaps=None):
     return "".join(parts)
 
 
-def _mark_counts(code):
-    code = deepcopy(_code(code))
+def mark_counts(code):
+    """就地替换全部 count 模板为不可展开标记；返回是否有替换发生。
+
+    渲染器/简介的标记与 source_extraction 的材料剔除共用这一条规则。
+    """
+    marked = False
     for template in list(code.ifilter_templates()):
         if _name(template).endswith("count"):
             code.replace(template, "\ufff0", recursive=True)
-    return code
+            marked = True
+    return marked
 
 
 def _information_text(code):
     # Preserve adjacent posting/reissue clauses, unlike the intro's whole
     # statistical sentence policy. Never expand templates globally.
-    text = _text(_mark_counts(code))
+    text = _text(mark_counts(deepcopy(_code(code))))
     lines = []
     for line in text.splitlines():
         clauses = re.split(r"[，,；;]", line)
@@ -371,7 +376,8 @@ class _IntroParagraphs:
 
 
 def _intro_text(code, gaps=None):
-    code = _mark_counts(code)
+    code = deepcopy(_code(code))
+    mark_counts(code)
     paragraphs = _IntroParagraphs()
     inline = []
 

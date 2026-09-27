@@ -107,6 +107,9 @@ Repository = "https://github.com/SheepLiu712/Agent-LuoTianyi"
 include-package-data = false
 py-modules = ["server_main"]
 
+[tool.setuptools.package-data]
+"src.world.get_new_songs" = ["vcpedia_templates.json"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src", "src.*"]

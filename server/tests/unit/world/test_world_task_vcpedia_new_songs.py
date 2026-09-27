@@ -4,16 +4,16 @@ from types import SimpleNamespace
 import src.domain.agent as d
 import src.world.get_new_songs.daily_new_song_fetcher as fetcher_module
 import src.world.get_new_songs.task as task_module
-from src.world.get_new_songs.daily_new_song_fetcher import (
-    NewSongCandidate,
-    collect_new_song_candidates,
-)
-from src.world.get_new_songs.task import VCPediaNewSongTask
 from src.infrastructure.persistence import (
     Song,
     get_song_session,
     init_song_db,
 )
+from src.world.get_new_songs.daily_new_song_fetcher import (
+    NewSongCandidate,
+    collect_new_song_candidates,
+)
+from src.world.get_new_songs.task import VCPediaNewSongTask
 
 
 def candidate(song_name="新歌", introduction="一首歌的介绍"):
@@ -169,7 +169,9 @@ def test_collect_new_song_candidates_skips_existing_and_writes_no_knowledge(monk
                         "lyrics": "歌词正文", "spaced_lyrics": "今天天气真不错 明天也要努力呀"}
             return None
 
-    monkeypatch.setattr(fetcher_module, "fetch_song_list_from_template", lambda url, timeout=20: ["新歌", "旧歌", "坏歌"])
+    monkeypatch.setattr(
+        fetcher_module, "fetch_song_list_from_template",
+        lambda url, timeout=20: ["新歌", "旧歌", "坏歌"])
     monkeypatch.setattr(fetcher_module, "VCPediaFetcher", FakeFetcher)
     monkeypatch.setattr(fetcher_module.time, "sleep", lambda _: None)
 

@@ -38,8 +38,16 @@ def _freeze(value):
     return value
 
 
+def _rules_path():
+    """规则文件位置：源码运行用 server/config（运维可直接编辑），wheel 安装回退包内副本。"""
+    source_cfg = Path(__file__).resolve().parents[3] / "config/vcpedia_templates.json"
+    if source_cfg.exists():
+        return source_cfg
+    return Path(__file__).resolve().parent / "vcpedia_templates.json"
+
+
 def _load_rules():
-    path = Path(__file__).resolve().parents[3] / "config/vcpedia_templates.json"
+    path = _rules_path()
     data = _read_document(path)
     _normalize_field_lookups(data, path)
     names = _validate_templates(data, path)
