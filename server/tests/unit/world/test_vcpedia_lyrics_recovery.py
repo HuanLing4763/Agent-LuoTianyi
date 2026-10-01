@@ -1,12 +1,9 @@
-"""覆盖率回归：两首在等价实现下抽不到歌词的页面，必须能抽出可检索的歌词。
+"""两页冻结源码的当前行为回归：非空歌词及可检索关键词。
 
-固化的 wikitext 为 VCPedia 真实页面响应（`tests/support/vcpedia_lyrics_recovery.json`）。
-这两个页面在迁移前的 HTML 实现下 `lyrics` 为空；本用例锁住"能取到"以及"取到的内容可用作
-关键词"两件事。
-
-说明：断言落在 `spaced_lyrics` 与关键词上，而不是"原文行数"。现存知识库里的 `lyrics`
-有 99.2% 是单行去标点形态，行结构并非稳定契约；对下游有意义的是关键词（见
-`docs/开发进程文档/vcpedia-keyword-baseline.md`）。
+输入是 `tests/support/vcpedia_lyrics_recovery.json` 的真实页面响应。本文件不加载旧 HTML，
+因此不独立证明迁移前后提取率差异，也不验证整段歌词的内容完整性。配对内容验证见
+`tests/support/vcpedia_corpus/README.md`；历史数字的证据边界见
+`tests/support/vcpedia_review/README.md`。歌词格式契约与关键词消费口径分别验证。
 """
 
 from __future__ import annotations
@@ -23,7 +20,7 @@ FIXTURES = json.loads(
     (Path(__file__).resolve().parents[2] / "support" / "vcpedia_lyrics_recovery.json").read_text(encoding="utf-8")
 )
 
-# 迁移前实现下 lyrics 为空的页面
+# 历史记录中报告恢复的页面；本文件只运行当前解析器。
 RECOVERED = ["乐鸣东方", "人是猫"]
 
 
