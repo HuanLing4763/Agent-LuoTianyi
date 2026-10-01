@@ -73,7 +73,7 @@ def _split_spaced_lyrics(spaced_lyrics: str) -> List[str]:
     ret = []
     for part in parts:
         cleaned = part.strip()
-        # 含 "=>" 的片段会破坏 keyword=>value 索引行的格式（验收标准 16）。
+        # 含 "=>" 的片段会破坏 keyword=>value 索引行的格式。
         if "=>" in cleaned:
             continue
         if len(cleaned) >= 6 and len(cleaned) <= 50:
@@ -147,11 +147,11 @@ def collect_new_song_candidates(
     """
     song_db_cfg = song_knowledge_config.get("song_database", {})
     if not song_db_cfg:
-        raise ValueError("缺少 knowledge.song_database 配置")
+        raise ValueError("缺少 world.song_knowledge.song_database 配置")
 
     crawler_cfg = song_knowledge_config.get("crawler", {})
     if not crawler_cfg:
-        raise ValueError("缺少 knowledge.crawler 配置")
+        raise ValueError("缺少 world.song_knowledge.crawler 配置")
 
     init_song_db(song_db_cfg)
     db = get_song_session()

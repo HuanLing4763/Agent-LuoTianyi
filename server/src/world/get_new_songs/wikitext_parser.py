@@ -337,7 +337,9 @@ def mark_counts(code):
 def _information_text(code):
     # Preserve adjacent posting/reissue clauses, unlike the intro's whole
     # statistical sentence policy. Never expand templates globally.
-    text = _text(mark_counts(deepcopy(_code(code))))
+    code = deepcopy(_code(code))
+    mark_counts(code)
+    text = _text(code)
     lines = []
     for line in text.splitlines():
         clauses = re.split(r"[，,；;]", line)
@@ -557,7 +559,7 @@ def _infobox_text(value, normkey):
     return ",".join(line.strip() for line in _text(value).splitlines() if line.strip())
 
 
-def _fields(template, missing):
+def _fields(template, missing, conversion):
     staff = _kind(template) == "staff"
     rule = descriptor(_name(template))
     data = {}
@@ -570,13 +572,17 @@ def _fields(template, missing):
         role, value = key, param.value
         if staff and folded.startswith(rule["group_prefix"]):
             role, value = _text(value), _value(template, rule["list_prefix"] + key[len(rule["group_prefix"]):])
-        text = _infobox_text(value, normkey)
+        # Resolve protection once before choosing a value, not after staff merging.
+        text = conversion.finish(_infobox_text(value, normkey))
         for label in _text(role).splitlines():
             label = field_key(label)
             if not label or is_presentation_key(label):
                 continue
-            if text:
-                data[label] = text
+            if text.strip():
+                if staff:
+                    data.setdefault(label, text)
+                else:
+                    data[label] = text
             elif not any(_name(t).endswith("count") for t in _code(value).filter_templates()):
                 missing.add(label)
     return data
@@ -604,13 +610,14 @@ class _DetailExtraction:
     """One page's traversal collecting infobox, first summary and first lyrics.
 
     Headings name the sections (简介/歌词) and route every node into one of the
-    collectors. The first songbox owns the infobox together with adjacent staff
-    templates and the main table; lyrics come from the first candidate in source
+    collectors. Staff after the first outer songbox and before the second only
+    fill missing infobox fields; lyrics come from the first candidate in source
     order. Gaps record why a field stayed empty so the caller can request
     supplements.
     """
 
-    def __init__(self):
+    def __init__(self, conversion):
+        self.conversion = conversion
         self.infobox = {}
         self.summaries = []
         self.lyric_candidates = []
@@ -633,11 +640,12 @@ class _DetailExtraction:
                 self._collect_by_section(node, frame)
         self._flush(frame)
 
-    def result(self, title, conversion):
-        """Convert the collected state into the result dict and missing-field report."""
+    def result(self, title):
+        """Finish prose; infobox values were already finished before precedence selection."""
+        conversion = self.conversion
         summary = self.summaries[:1] or ([""] if self.has_heading else [])
         lyrics = next(iter(self.lyric_candidates), "")
-        self.missing.difference_update(self.infobox)
+        self.missing.difference_update(key for key, value in self.infobox.items() if value.strip())
         needed = {
             "infobox": sorted(self.missing),
             "summary": bool(self.gaps["summary"]) or bool(self.boxes) and not any(summary),
@@ -646,7 +654,7 @@ class _DetailExtraction:
         return {
             "name": title,
             "type": "Song" if self.has_lyrics else "Person",
-            "infobox": {key: conversion.finish(value) for key, value in self.infobox.items()},
+            "infobox": dict(self.infobox),
             "summary": [conversion.finish(value) for value in summary],
             "lyrics": conversion.finish(lyrics),
             "spaced_lyrics": conversion.finish(spaced_from(lyrics)),
@@ -675,9 +683,7 @@ class _DetailExtraction:
         if kind == "songbox":
             self._collect_songbox(node, frame)
         elif kind == "staff":
-            # 首框到第二框之间的 staff 属于该信息框（可隔着简介标题）；首框之前的不算。
-            if self.boxes == 1:
-                self.infobox.update(_fields(node, self.missing))
+            self._collect_staff(node)
         elif kind == "lyrics":
             self._collect_lyrics_template(node, frame)
         elif descriptor(_name(node)).get("kind") == "inline":
@@ -687,12 +693,20 @@ class _DetailExtraction:
         else:
             self._on_other_template(node, frame, kind)
 
+    def _collect_staff(self, node):
+        """首框关联区间可跨正文标题；首框及早先 staff 的非空值优先。"""
+        if self.boxes != 1:
+            return
+        for key, value in _fields(node, self.missing, self.conversion).items():
+            if not self.infobox.get(key, "").strip():
+                self.infobox[key] = value
+
     def _collect_songbox(self, node, frame):
         # 参数值里出现的同名模板不是新的歌曲框，只是该参数的取值。
         if not frame.nested:
             self.boxes += 1
             if self.boxes == 1:
-                self.infobox.update(_fields(node, self.missing))
+                self.infobox.update(_fields(node, self.missing, self.conversion))
         slots = {id(content): slot for slot, _, content in _contents(node)}
         for param in node.params:
             self._flush(frame)
@@ -721,9 +735,9 @@ class _DetailExtraction:
             # Only documented content slots inherit surrounding prose. All other
             # values are independent structural search roots.
             if id(param.value) in slots:
-                self.walk(param.value, frame.section, frame.level, frame.direct)
+                self.walk(param.value, frame.section, frame.level, frame.direct, nested=frame.nested)
             else:
-                self.walk(param.value, "歌词" if frame.section == "歌词" else "")
+                self.walk(param.value, "歌词" if frame.section == "歌词" else "", nested=frame.nested)
         if frame.section == "简介":
             if len(self.summaries) > start:
                 frame.intro.append(Tag("p", contents=self.summaries[start]))
@@ -769,9 +783,17 @@ class _DetailExtraction:
             frame.section == "歌词" and not frame.table_done)
         if self.boxes <= 1 and (main_table or adjacent_section):
             if "navbox" not in classes:
-                self.infobox.update(_table_data(table, single_col=frame.section != "歌词" or main_table))
+                self._collect_table_fields(_table_data(table, single_col=frame.section != "歌词" or main_table))
             if frame.section == "歌词" and (tag == "table" or "navbox" not in classes):
                 frame.table_done = True
+
+    def _collect_table_fields(self, fields):
+        """Table values share the single final-text boundary without changing table precedence."""
+        for key, value in fields.items():
+            text = self.conversion.finish(value)
+            self.infobox[key] = text
+            if not text.strip():
+                self.missing.add(key)
 
     def _walk_container(self, node, tag, frame):
         """Walk a container's contents; return False when the enclosing intro keeps
@@ -782,12 +804,12 @@ class _DetailExtraction:
         if (frame.section != "简介" or any(_heading_level(n) for n in content.nodes)
                 or any(_kind(t) in {"songbox", "staff", "tabs"} for t in content.filter_templates())):
             self._flush(frame)
-            self.walk(content, frame.section, frame.level, frame.direct)
+            self.walk(content, frame.section, frame.level, frame.direct, nested=frame.nested)
             return True
         # Keep discovering structures, but publish nested intros after the
         # enclosing intro has finished, including its tail.
         start = len(self.summaries)
-        self.walk(content)
+        self.walk(content, nested=frame.nested)
         frame.nested_summaries.extend(self.summaries[start:])
         del self.summaries[start:]
         return False
@@ -812,8 +834,8 @@ class _DetailExtraction:
 
 def parse_details(source: str, title: str, *, with_missing=False) -> Dict:
     """Read fields, first introduction and first lyrics independently."""
-    extraction = _DetailExtraction()
     conversion = TextConversion(source)
+    extraction = _DetailExtraction(conversion)
     extraction.walk(mw.parse(conversion.protect(source)))
-    result, needed = extraction.result(title, conversion)
+    result, needed = extraction.result(title)
     return (result, needed) if with_missing else result

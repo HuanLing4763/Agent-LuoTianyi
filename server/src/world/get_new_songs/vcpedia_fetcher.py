@@ -12,7 +12,11 @@ cwd = os.getcwd()
 sys.path.insert(0, str(cwd))
 
 from src.utils.logger import get_logger  # noqa: E402
-from src.world.get_new_songs.source_extraction import collect_materials, merge_missing  # noqa: E402
+from src.world.get_new_songs.source_extraction import (  # noqa: E402
+    collect_materials,
+    decode_extraction_response,
+    merge_missing,
+)
 from src.world.get_new_songs.text_conversion import convert_text  # noqa: E402
 from src.world.get_new_songs.wiki_api import fetch_wikitext, user_agent  # noqa: E402
 from src.world.get_new_songs.wikitext_parser import parse_details  # noqa: E402
@@ -28,7 +32,7 @@ class VCPediaFetcher:
         self.base_url = crawler_config.get("base_url", "https://vcpedia.cn")
 
         self.llm_cfg = config.get("llm", {})
-        self.use_llm = config.get("use_llm", False)
+        self.use_llm = config.get("use_llm", True)
         self.llm_module = llm_module
         self.extraction_llm_module = extraction_llm_module
         self.llm_client = None
@@ -99,13 +103,7 @@ class VCPediaFetcher:
                 song_data=json.dumps(data, ensure_ascii=False, default=str),
                 needed=json.dumps(needed, ensure_ascii=False),
                 materials=json.dumps(materials, ensure_ascii=False))
-            if isinstance(result, str):
-                if len(result) > 24000:
-                    raise ValueError("Extraction response exceeds 24000 characters")
-                result = json.loads(result)
-            if not isinstance(result, dict):
-                raise ValueError("Extraction response must be a JSON object")
-            merge_missing(data, result, needed)
+            merge_missing(data, decode_extraction_response(result), needed)
         except Exception as exc:
             self.logger.warning(f"Optional VCPedia extraction failed: {exc}")
 

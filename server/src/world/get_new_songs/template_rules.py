@@ -99,6 +99,8 @@ def _validate_templates(data, path):
     def fail(location, reason):
         raise ValueError(f"{path}: {location}: {reason}")
 
+    if not isinstance(data["templates"], list):
+        fail("templates", "expected list")
     names = {}
     for index, rule in enumerate(data["templates"]):
         location = f"templates[{index}]"
@@ -133,6 +135,8 @@ def _validate_descriptor_field(rule, key, location, fail):
             if not isinstance(param, str) or not param.strip():
                 fail(location, "expected nonempty parameter name")
             _string_list(values, f"{location}.{param}", fail)
+            if not values:
+                fail(f"{location}.{param}", "expected nonempty values")
     elif key.endswith("_prefix"):
         if not isinstance(rule[key], str) or not rule[key].strip():
             fail(location, "expected nonempty prefix string")

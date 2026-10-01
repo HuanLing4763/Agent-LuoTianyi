@@ -1,8 +1,6 @@
-"""关键词契约：按空白切分、保留 6–50 字片段、不得含 "=>" 或换行（验收标准 16）。"""
+"""关键词按空白切分、保留 6–50 字片段，不得含破坏索引格式的 "=>" 或换行。"""
 
 from __future__ import annotations
-
-import pytest
 
 from src.world.get_new_songs.daily_new_song_fetcher import _split_spaced_lyrics
 

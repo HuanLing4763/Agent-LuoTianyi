@@ -1,4 +1,5 @@
 """Collect missing-field materials and merge business values; never call a model."""
+import json
 import re
 
 import mwparserfromhell as mw
@@ -72,6 +73,29 @@ def material_text(source):
             else:
                 template.remove(param.name)
     return _kept_lines(str(code), parameter_line=False)[:24000]
+
+
+def _reject_nonfinite_json(value):
+    raise ValueError(f"Extraction response contains a non-finite JSON number: {value}")
+
+
+def decode_extraction_response(response: str | dict) -> dict:
+    """Require finite JSON object values and bound raw text or serialized dict replies."""
+    from_text = isinstance(response, str)
+    if from_text:
+        if len(response) > 24000:
+            raise ValueError("Extraction response exceeds 24000 characters")
+        response = json.loads(response, parse_constant=_reject_nonfinite_json)
+    if not isinstance(response, dict):
+        raise ValueError("Extraction response must be a JSON object")
+    try:
+        # Also catches numeric overflow after decoding, and invalid nested dict values.
+        encoded = json.dumps(response, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Extraction response must contain finite JSON-compatible values") from exc
+    if not from_text and len(encoded) > 24000:
+        raise ValueError("Extraction response exceeds 24000 characters")
+    return response
 
 
 def merge_missing(data, result, needed):
