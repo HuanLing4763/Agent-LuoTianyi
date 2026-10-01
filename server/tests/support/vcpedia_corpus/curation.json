@@ -1,36 +1,525 @@
 {
- "dropped": {
-  "青麟雪": "结构相似簇的重复代表",
-  "煌": "最后编辑者 小祺 近期不活跃",
-  "飞跃乌托邦": "结构相似簇的重复代表",
-  "惜春去": "结构相似簇的重复代表",
-  "神孽": "结构相似簇的重复代表",
-  "海王的心": "结构相似簇的重复代表",
-  "page1": "结构相似簇的重复代表",
-  "page2": "结构相似簇的重复代表",
-  "page3": "结构相似簇的重复代表"
- },
- "clusters": [
-  [
-   "Estrus Cycle",
-   "page2"
+  "candidate_count": 31,
+  "decisions": [
+    {
+      "ast_sha256": "8b310cb1674ffd592f739a9f3569e7ac1deb90fb7973b774bdcd04ad75e9a775",
+      "keep": true,
+      "reason": "selected independent business boundary: masked-original-not-translation",
+      "representative": "Estrus Cycle",
+      "title": "Estrus Cycle"
+    },
+    {
+      "ast_sha256": "1078208a9c4a05a490bc2fc220bf50c560d80760bac93dd973719a088f147550",
+      "keep": true,
+      "reason": "selected independent business boundary: columns-list-lyrics-unhandled, old-better-lyrics",
+      "representative": "Foxy",
+      "title": "Foxy"
+    },
+    {
+      "ast_sha256": "2b2494c15aac80fb8b34b4204ed63f54a72caf0efb7f6c9b8daae1e984d56a8a",
+      "keep": true,
+      "reason": "selected independent business boundary: visible-morse-not-hover-alternative, partial-gap",
+      "representative": "I LOVE YOU(Adaa)",
+      "title": "I LOVE YOU(Adaa)"
+    },
+    {
+      "ast_sha256": "4152673c414d6a0e314b8e9d4d4b7a604563b490010f361ba658408260143728",
+      "keep": true,
+      "reason": "selected independent business boundary: hover-original-first, wrong-candidate-regression",
+      "representative": "Sharing The World",
+      "title": "Sharing The World"
+    },
+    {
+      "ast_sha256": "076fef076c21121534fc3be5f76fa02f0588fd7963500556577d5b920b5439de",
+      "keep": true,
+      "reason": "non-song terminology, retained mandatory classification audit outside song subset",
+      "representative": "亚种",
+      "title": "亚种"
+    },
+    {
+      "ast_sha256": "9336cd0e49b3b35e8315a2af8ac32cbb06e8c8159bb9e084b46d0e5e65eeb7a2",
+      "keep": true,
+      "reason": "group/list staff and color poem tie covered; underscore introduction alias, ref/references and extra IDs retained as baseline",
+      "representative": "青麟雪",
+      "title": "凌晨四时 零下四度"
+    },
+    {
+      "ast_sha256": "844c3af352aa7d0210938c4bf900600d6c48b9c7297d90f027f340243803a295",
+      "keep": true,
+      "reason": "span-only historical loss covered; baseline retained",
+      "representative": "唱给雅音宫羽",
+      "title": "刀马旦(虚拟歌手)"
+    },
+    {
+      "ast_sha256": "f07a8b01e9b67961e59d25e87d0859c4594998ed1dacb88c8c0a788ea01de60f",
+      "keep": true,
+      "reason": "non-song ranking, retained mandatory audit outside song subset",
+      "representative": "周刊Synthesizer V排行榜72",
+      "title": "周刊Synthesizer V排行榜72"
+    },
+    {
+      "ast_sha256": "2caa97da13b093a885baa12ea00667fe652043a41fbf4ccb8c2c660f697320a4",
+      "keep": true,
+      "reason": "ranking source-only boundary, no pair and never in paired denominator",
+      "representative": "周刊Synthesizer V排行榜72",
+      "title": "周刊VOCALOID中文排行榜449"
+    },
+    {
+      "ast_sha256": "bc18a3f2cad50bda2f7af9e11b2c0a8c98cfa231cec1cb82ecac31957855b69b",
+      "keep": true,
+      "reason": "selected independent business boundary: plain-plus-spans, summary-font-fact",
+      "representative": "唱给雅音宫羽",
+      "title": "唱给雅音宫羽"
+    },
+    {
+      "ast_sha256": "ef4f7cac776c9506941fc029f11ccad46eeb58763238e0022df45f2d5e7f3786",
+      "keep": true,
+      "reason": "selected independent business boundary: multi-version-first-candidate, summary-counter-facts",
+      "representative": "山塘恋雨",
+      "title": "山塘恋雨"
+    },
+    {
+      "ast_sha256": "53f4ba26666524e80878552250860287ae3130ba3ee5b3c4a24121796e45e164",
+      "keep": true,
+      "reason": "ordinary first-poem tie and copyright noise covered; baseline retained",
+      "representative": "青麟雪",
+      "title": "当我想哭的时候厕所里总是有黄金"
+    },
+    {
+      "ast_sha256": "336e2023944463a7253896a4baee6af9b649ce50187090318180bca024bd51b2",
+      "keep": false,
+      "reason": "same group/list staff and ordinary poem content tie; center wrapping and three presentation color keys differ but no new business field boundary",
+      "representative": "青麟雪",
+      "title": "惜春去"
+    },
+    {
+      "ast_sha256": "5a00950b4be7e7cf9278c7e8bd89f42fa4e973bb92835eeb431fc33965049125",
+      "keep": true,
+      "reason": "ruby and narrative mixed original covered; baseline retained",
+      "representative": "长平传",
+      "title": "我生于死去之日。"
+    },
+    {
+      "ast_sha256": "39ecba63854126f22dff09b4a50d3ba8a473065fc5383f0fafbcfffca74d3217",
+      "keep": true,
+      "reason": "ordinary first-poem tie covered; extra IDs retained baseline",
+      "representative": "青麟雪",
+      "title": "我还活着"
+    },
+    {
+      "ast_sha256": "ea5d65b102cf1f1d11ffaaeb60f7303ac95eecc24a6a304376670564a4d4f23d",
+      "keep": true,
+      "reason": "non-song disambiguation, retained mandatory classification audit outside song subset",
+      "representative": "普罗米修斯",
+      "title": "普罗米修斯"
+    },
+    {
+      "ast_sha256": "ae6ffea5dabedaca812d88c20e77c6392ebf869ec140e11a497ce8a75f895f0d",
+      "keep": true,
+      "reason": "selected independent business boundary: custom-infobox, many-versions-first",
+      "representative": "普通DISCO",
+      "title": "普通DISCO"
+    },
+    {
+      "ast_sha256": "34bf09204d0b40f10fe0be485f69f1debaefd0094f82cc22c667b6ace18dafef",
+      "keep": true,
+      "reason": "custom infobox/old empty lyrics covered; distinct human-sung Infobox Song retained in archive and extended oracle",
+      "representative": "普通DISCO",
+      "title": "横竖撇点折"
+    },
+    {
+      "ast_sha256": "86bded1846654f01417aa457ccfcabfa0df35f4122b19ed80feb5969c503d048",
+      "keep": true,
+      "reason": "color poem content tie covered; copyright infobox noise remains baseline",
+      "representative": "青麟雪",
+      "title": "此刻说再见"
+    },
+    {
+      "ast_sha256": "54fd6540ef1467d7166a666346b71a18f869ade04a9334ae74c4526618d344b7",
+      "keep": false,
+      "reason": "parenthesized harmony covered; earlier non-lyric story poem differs but first-lyrics-section boundary covered by 青麟雪",
+      "representative": "礼物pre-Sent",
+      "title": "海王的心"
+    },
+    {
+      "ast_sha256": "b797fc4982ab5cd958472170f8d69cbb33bc2f0a40b50203848bb55f72aad3de",
+      "keep": false,
+      "reason": "role separation and lyric tie covered; not excluded on false inactivity",
+      "representative": "青麟雪",
+      "title": "煌"
+    },
+    {
+      "ast_sha256": "6546f9499de41d376f2fe2cee51966aaedb7bbc0dbeaf909305c988ed8e18ce0",
+      "keep": true,
+      "reason": "parenthesized harmony covered; second-version summary scope retained in archive",
+      "representative": "礼物pre-Sent",
+      "title": "疑神疑鬼"
+    },
+    {
+      "ast_sha256": "a4a6116074c5aa4bc472ef4018bd4a0df0174013f85976a25df3450cbc693d77",
+      "keep": true,
+      "reason": "selected independent business boundary: parenthetical-harmonies",
+      "representative": "礼物pre-Sent",
+      "title": "礼物pre-Sent"
+    },
+    {
+      "ast_sha256": "d324dd23a8761c18158d781db940fbe5a433f4fe4c6cbe69a4368336fbce56a6",
+      "keep": true,
+      "reason": "selected independent business boundary: cross-colour-n-unhandled, old-duplicate-new-empty",
+      "representative": "社畜烧酒",
+      "title": "社畜烧酒"
+    },
+    {
+      "ast_sha256": "21c9f108b21381b9716e61397123097680166930495f7050f117ed1893eb5a11",
+      "keep": true,
+      "reason": "plain color poem and tie covered; direct named staff keys differ from group/list and remain extended oracle",
+      "representative": "青麟雪",
+      "title": "神孽"
+    },
+    {
+      "ast_sha256": "adbc2dc398631023ea71b6762bc1fb4c623399d3a3de69c19d6446e7e8d39173",
+      "keep": true,
+      "reason": "ruby lyric surface and extended staff roles covered; retains original revision and baseline",
+      "representative": "长平传",
+      "title": "秦宣四方"
+    },
+    {
+      "ast_sha256": "9ea33fd4614e9763de7f61b9a2c007794f1de407a089c2ae0377cd9450118bcf",
+      "keep": true,
+      "reason": "lyric tie and source staff covered; multiple-version summaries retained in baseline",
+      "representative": "青麟雪",
+      "title": "纸飞机(GhostFinal)"
+    },
+    {
+      "ast_sha256": "047336a5ba872b7acd1390b84ce12e05d2ad0b2af03f408f3267f6f0fdb49ba0",
+      "keep": true,
+      "reason": "poem full versus historical empty/partial covered; baseline retained",
+      "representative": "唱给雅音宫羽",
+      "title": "致闪耀的你"
+    },
+    {
+      "ast_sha256": "c55c127b43df9491bf728c2c6ab0ee01b1d15f8fc1d60740eef6257bff831017",
+      "keep": true,
+      "reason": "selected independent business boundary: blank-ruby-audible-fallback, bracket-placeholders",
+      "representative": "达拉崩吧",
+      "title": "达拉崩吧"
+    },
+    {
+      "ast_sha256": "a8696ee0dbd9a0218acb584664e020019405e64487955b604133d705f7f0b2c3",
+      "keep": true,
+      "reason": "selected independent business boundary: dramatic-spoken-lines, protected-lc",
+      "representative": "长平传",
+      "title": "长平传"
+    },
+    {
+      "ast_sha256": "e75a866fff97ad156f78bb3454e2fbdd2289861286056c16c8ec90d1df22525a",
+      "keep": true,
+      "reason": "selected independent business boundary: lyrics-content-tie, split-staff-roles",
+      "representative": "青麟雪",
+      "title": "青麟雪"
+    },
+    {
+      "ast_sha256": "95e30de2b2910a128c9a61bcc6c92071f92bad6af0c4422853068337c847eacb",
+      "keep": true,
+      "reason": "songbox+staff role splitting and old-empty/partial lyrics covered; source ref/references and lyric analysis after poem remain extended oracle",
+      "representative": "长平传",
+      "title": "飞跃乌托邦"
+    }
   ],
-  [
-   "page1",
-   "此刻说再见"
+  "dropped": [
+    "惜春去",
+    "海王的心",
+    "煌"
   ],
-  [
-   "page3",
-   "周刊VOCALOID中文排行榜449"
+  "final_input_policy": "kept/dropped describe repository inputs; candidate metadata stays in ledger. Omitted inputs have covered business boundaries, not failed output or false inactivity.",
+  "invalid_exclusions_reversed": [
+    "青麟雪",
+    "煌",
+    "飞跃乌托邦",
+    "惜春去",
+    "神孽",
+    "海王的心"
   ],
-  [
-   "凌晨四时 零下四度",
-   "惜春去",
-   "海王的心",
-   "神孽",
-   "青麟雪",
-   "飞跃乌托邦"
-  ]
- ],
- "candidate_count": 35
+  "kept": [
+    "Estrus Cycle",
+    "Foxy",
+    "I LOVE YOU(Adaa)",
+    "Sharing The World",
+    "亚种",
+    "凌晨四时 零下四度",
+    "刀马旦(虚拟歌手)",
+    "周刊Synthesizer V排行榜72",
+    "周刊VOCALOID中文排行榜449",
+    "唱给雅音宫羽",
+    "山塘恋雨",
+    "当我想哭的时候厕所里总是有黄金",
+    "我生于死去之日。",
+    "我还活着",
+    "普罗米修斯",
+    "普通DISCO",
+    "横竖撇点折",
+    "此刻说再见",
+    "疑神疑鬼",
+    "礼物pre-Sent",
+    "社畜烧酒",
+    "神孽",
+    "秦宣四方",
+    "纸飞机(GhostFinal)",
+    "致闪耀的你",
+    "达拉崩吧",
+    "长平传",
+    "青麟雪",
+    "飞跃乌托邦"
+  ],
+  "paired_candidates": 31,
+  "paired_inputs": 28,
+  "policy": "Ordered AST plus business boundaries; no target count; no Jaccard auto-drop. All distinct baseline/counterexamples protected.",
+  "present_inputs": 29,
+  "removed_new_inputs": [
+    "惜春去",
+    "海王的心",
+    "煌"
+  ],
+  "scope": "All candidate evidence retained; default content12 and performance8 are coverage subsets. Not selected is not deletion or a claim of full-page equivalence.",
+  "selected_titles": [
+    "Foxy",
+    "Sharing The World",
+    "社畜烧酒",
+    "唱给雅音宫羽",
+    "山塘恋雨",
+    "普通DISCO",
+    "礼物pre-Sent",
+    "青麟雪",
+    "I LOVE YOU(Adaa)",
+    "长平传",
+    "达拉崩吧",
+    "Estrus Cycle"
+  ],
+  "selection_decisions": [
+    {
+      "reason": "selected independent business boundary: masked-original-not-translation",
+      "representative": "Estrus Cycle",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "Estrus Cycle"
+    },
+    {
+      "reason": "selected independent business boundary: columns-list-lyrics-unhandled, old-better-lyrics",
+      "representative": "Foxy",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "Foxy"
+    },
+    {
+      "reason": "selected independent business boundary: visible-morse-not-hover-alternative, partial-gap",
+      "representative": "I LOVE YOU(Adaa)",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "I LOVE YOU(Adaa)"
+    },
+    {
+      "reason": "selected independent business boundary: hover-original-first, wrong-candidate-regression",
+      "representative": "Sharing The World",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "Sharing The World"
+    },
+    {
+      "reason": "non-song terminology, retained mandatory classification audit outside song subset",
+      "representative": "亚种",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "亚种"
+    },
+    {
+      "reason": "group/list staff and color poem tie covered; underscore introduction alias, ref/references and extra IDs retained as baseline",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "凌晨四时 零下四度"
+    },
+    {
+      "reason": "span-only historical loss covered; baseline retained",
+      "representative": "唱给雅音宫羽",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "刀马旦(虚拟歌手)"
+    },
+    {
+      "reason": "non-song ranking, retained mandatory audit outside song subset",
+      "representative": "周刊Synthesizer V排行榜72",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "周刊Synthesizer V排行榜72"
+    },
+    {
+      "reason": "ranking source-only boundary, no pair and never in paired denominator",
+      "representative": "周刊Synthesizer V排行榜72",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "周刊VOCALOID中文排行榜449"
+    },
+    {
+      "reason": "selected independent business boundary: plain-plus-spans, summary-font-fact",
+      "representative": "唱给雅音宫羽",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "唱给雅音宫羽"
+    },
+    {
+      "reason": "selected independent business boundary: multi-version-first-candidate, summary-counter-facts",
+      "representative": "山塘恋雨",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "山塘恋雨"
+    },
+    {
+      "reason": "ordinary first-poem tie and copyright noise covered; baseline retained",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "当我想哭的时候厕所里总是有黄金"
+    },
+    {
+      "reason": "same group/list staff and ordinary poem content tie; center wrapping and three presentation color keys differ but no new business field boundary",
+      "representative": "青麟雪",
+      "retained_in_archive": false,
+      "selected": false,
+      "title": "惜春去"
+    },
+    {
+      "reason": "ruby and narrative mixed original covered; baseline retained",
+      "representative": "长平传",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "我生于死去之日。"
+    },
+    {
+      "reason": "ordinary first-poem tie covered; extra IDs retained baseline",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "我还活着"
+    },
+    {
+      "reason": "non-song disambiguation, retained mandatory classification audit outside song subset",
+      "representative": "普罗米修斯",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "普罗米修斯"
+    },
+    {
+      "reason": "selected independent business boundary: custom-infobox, many-versions-first",
+      "representative": "普通DISCO",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "普通DISCO"
+    },
+    {
+      "reason": "custom infobox/old empty lyrics covered; distinct human-sung Infobox Song retained in archive and extended oracle",
+      "representative": "普通DISCO",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "横竖撇点折"
+    },
+    {
+      "reason": "color poem content tie covered; copyright infobox noise remains baseline",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "此刻说再见"
+    },
+    {
+      "reason": "parenthesized harmony covered; earlier non-lyric story poem differs but first-lyrics-section boundary covered by 青麟雪",
+      "representative": "礼物pre-Sent",
+      "retained_in_archive": false,
+      "selected": false,
+      "title": "海王的心"
+    },
+    {
+      "reason": "role separation and lyric tie covered; not excluded on false inactivity",
+      "representative": "青麟雪",
+      "retained_in_archive": false,
+      "selected": false,
+      "title": "煌"
+    },
+    {
+      "reason": "parenthesized harmony covered; second-version summary scope retained in archive",
+      "representative": "礼物pre-Sent",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "疑神疑鬼"
+    },
+    {
+      "reason": "selected independent business boundary: parenthetical-harmonies",
+      "representative": "礼物pre-Sent",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "礼物pre-Sent"
+    },
+    {
+      "reason": "selected independent business boundary: cross-colour-n-unhandled, old-duplicate-new-empty",
+      "representative": "社畜烧酒",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "社畜烧酒"
+    },
+    {
+      "reason": "plain color poem and tie covered; direct named staff keys differ from group/list and remain extended oracle",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "神孽"
+    },
+    {
+      "reason": "ruby lyric surface and extended staff roles covered; retains original revision and baseline",
+      "representative": "长平传",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "秦宣四方"
+    },
+    {
+      "reason": "lyric tie and source staff covered; multiple-version summaries retained in baseline",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "纸飞机(GhostFinal)"
+    },
+    {
+      "reason": "poem full versus historical empty/partial covered; baseline retained",
+      "representative": "唱给雅音宫羽",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "致闪耀的你"
+    },
+    {
+      "reason": "selected independent business boundary: blank-ruby-audible-fallback, bracket-placeholders",
+      "representative": "达拉崩吧",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "达拉崩吧"
+    },
+    {
+      "reason": "selected independent business boundary: dramatic-spoken-lines, protected-lc",
+      "representative": "长平传",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "长平传"
+    },
+    {
+      "reason": "selected independent business boundary: lyrics-content-tie, split-staff-roles",
+      "representative": "青麟雪",
+      "retained_in_archive": true,
+      "selected": true,
+      "title": "青麟雪"
+    },
+    {
+      "reason": "songbox+staff role splitting and old-empty/partial lyrics covered; source ref/references and lyric analysis after poem remain extended oracle",
+      "representative": "长平传",
+      "retained_in_archive": true,
+      "selected": false,
+      "title": "飞跃乌托邦"
+    }
+  ],
+  "selection_policy": "Coverage first, active humans preferred when redundant. All matched account editors active at official snapshot; bot last edits do not imply structure authorship. Selection is independent of observed wall-clock timing."
 }

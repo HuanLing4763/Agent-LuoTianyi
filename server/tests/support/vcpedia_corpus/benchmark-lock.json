@@ -1,0 +1,46 @@
+{
+  "basis": "Coverage-selected fixed8, before any benchmark measurement; changes require explicit review.",
+  "sample_set": [
+    {
+      "html_sha256": "10237a0827dd1f999bcad1c2212a6ee84ad6871ee42ee0c942e0a95c4f64c1be",
+      "source_sha256": "3d31f20ed929c6719240fa60dff472b4bbd0ea14ba7f2f996a9b2d12310eb64f",
+      "title": "Foxy"
+    },
+    {
+      "html_sha256": "6dca4e80cefcc40929a1214877852ebf73a21a30966efcafcfc16913e77ca8da",
+      "source_sha256": "4d6bb884d87f2c41a7ad37cb6fd5d2c46d2ee06b94caf2137d8847ff4222da28",
+      "title": "Sharing The World"
+    },
+    {
+      "html_sha256": "ef76612ab7621e22cdad401a861898bc490cfb5a2885e780e103157fa92a0593",
+      "source_sha256": "dacf10e16aa8f83779cf009c4aa3917fe51d5b5fad5831e60bcd2a3907043f04",
+      "title": "唱给雅音宫羽"
+    },
+    {
+      "html_sha256": "a88ed18b61394d1b34656e7ce5a39cb7fa94348d9bd3b1981370b2362c094bb7",
+      "source_sha256": "913898417ff0788c09cd60a816882199ff0dfe0e60f4a7e5c0c89f17c1f757be",
+      "title": "山塘恋雨"
+    },
+    {
+      "html_sha256": "af249f4bacc86d8e30eea2f148f89e2cd2e255a7b4453afdeed82ee41093d15d",
+      "source_sha256": "418661ca43fe3449d574edbde629ddfb6c2d21e613f565de542949cd4d1c184f",
+      "title": "普通DISCO"
+    },
+    {
+      "html_sha256": "6d1c40f57115561d6218eb6e983b1851e91a62c9f3f7c56f20a56f7f5ba91f35",
+      "source_sha256": "156adc13b127634c83f5e4c5144eed18f0ce9a1c0bd56d366d87204f69ddc3ab",
+      "title": "礼物pre-Sent"
+    },
+    {
+      "html_sha256": "baa90147b4fe77e7406ba85b2c2d9620d9775f25d04a25940541b164ebdcf758",
+      "source_sha256": "c3ec95cc00be4ec6a272cf72e20fa2ead6a8153728c31faaeeceaea87956cfdc",
+      "title": "社畜烧酒"
+    },
+    {
+      "html_sha256": "40f7a7a0294f1aae811d9f3d14122ae295f5b72f795b732f74e0743e63f4ebd5",
+      "source_sha256": "e84e0e8f4fc4133f58637be9462c43bec29e7edef5637c55465cd93b32e1ed8e",
+      "title": "青麟雪"
+    }
+  ],
+  "sample_set_sha256": "cb69884dd2691a6233aca1de5c26f308f63f609798ecd40102ca2a39cad4578b"
+}

@@ -1,250 +1,298 @@
-"""VCPedia 回归语料的冻结与选材。
+"""Validate and reproduce an explicitly supplied offline corpus, never its oracle.
 
-从四个既有来源收集带 wikitext 源码的页面，按标题去重，记录每页的最后编辑者/时间与
-模板签名，然后按两条选材标准收缩：编者近期不活跃的页面剔除（其结构反映已死的编辑
-习惯），结构相似簇只保留代表页。输出 tests/support/vcpedia_corpus/ 下的源码与元数据，
-供 test_vcpedia_corpus_baseline.py 固化触发行为。
-
-用法：python scripts/vcpedia_freeze_corpus.py          # 全流程
-     python scripts/vcpedia_freeze_corpus.py --offline # 只重组本地已有素材，不访问网络
+No network, git tags, worktree discovery or production parser output is used here.
+Import manifests and separately reviewed expected values have distinct lifecycles.
 """
 from __future__ import annotations
 
-import glob
+import argparse
+import gzip
+import hashlib
 import json
-import os
 import re
-import subprocess
+import shutil
 import sys
-import time
-from collections import Counter
-from pathlib import Path
+import tempfile
+from collections import defaultdict
+from pathlib import Path, PureWindowsPath
+from urllib.parse import unquote, urlparse
 
-SERVER = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SERVER))
+import mwparserfromhell as mw
+from bs4 import BeautifulSoup
+from mwparserfromhell.nodes import Heading, Tag, Template, Text
 
-OUT = SERVER / "tests" / "support" / "vcpedia_corpus"
-FIXTURE_TAG = "dsh-backup-stash0"
-_FIXTURE_DIR = "server/tests/world/fixtures"
-APP_UA = "AgentLuo/1.0 (+https://github.com/SheepLiu712/Agent-LuoTianyi)"
-
-
-def _artifacts_base():
-    """历史回放素材在主工作区的 data 目录；worktree 内没有。"""
-    if (SERVER / "data" / "test_outputs" / "precommit-review-cache-a7fb24317a").exists():
-        return SERVER / "data" / "test_outputs"
-    out = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                         capture_output=True, text=True, cwd=str(SERVER)).stdout
-    for line in out.splitlines():
-        if line.startswith("worktree "):
-            candidate = Path(line.split(None, 1)[1]) / "server" / "data" / "test_outputs"
-            if (candidate / "precommit-review-cache-a7fb24317a").exists():
-                return candidate
-    return SERVER / "data" / "test_outputs"
+ACTIVE_URL = "https://vcpedia.cn/Special:活跃用户"
+HTML_KIND = "mediawiki parse.text fragment"
 
 
-def _untracked_ref():
-    """备份 tag 指向 stash 提交；未跟踪文件在其第三个父提交（untracked 树）。"""
-    rev = subprocess.run(["git", "rev-parse", f"{FIXTURE_TAG}^3"],
-                         capture_output=True, text=True, cwd=str(SERVER)).stdout.strip()
-    return rev or FIXTURE_TAG
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
 
 
-def _absorb_replay(pages, base):
-    cache_review = base / "precommit-review-cache-a7fb24317a"
-    for run in ("run-37a454d954", "run-3b548a8817"):
-        for f in sorted(glob.glob(str(cache_review / run / "*.json"))):
-            d = json.loads(Path(f).read_text(encoding="utf-8"))
-            if not isinstance(d, dict):
-                continue
-            inp = d.get("input")
-            items = [inp] if isinstance(inp, dict) else (inp or []) if isinstance(inp, list) else []
-            for e in items:
-                if not isinstance(e, dict):
-                    continue
-                wt, hp = e.get("wikitext_path"), e.get("html_path")
-                if e.get("title") and wt and os.path.exists(wt):
-                    pages.setdefault(e["title"], {"origins": []})
-                    pages[e["title"]].setdefault("wikitext", Path(wt).read_text(encoding="utf-8"))
-                    pages[e["title"]]["origins"].append(f"replay:{run}")
-                    if hp and os.path.exists(hp):
-                        pages[e["title"]]["html_path"] = hp
+def json_bytes(value):
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
-def _absorb_random(pages, base):
-    for f in sorted(glob.glob(str(base / "precommit-review-random-20260912" / "*.api.json"))):
-        d = json.loads(Path(f).read_text(encoding="utf-8"))
-        title = (d.get("parse") or {}).get("title")
-        wt = f.replace(".api.json", ".wikitext")
-        if title and os.path.exists(wt):
-            pages.setdefault(title, {"origins": []})
-            pages[title].setdefault("wikitext", Path(wt).read_text(encoding="utf-8"))
-            pages[title]["origins"].append("random-review")
-            html = f.replace(".api.json", ".html")
-            if os.path.exists(html):
-                pages[title]["html_path"] = html
+def relative_file(root, name):
+    if not isinstance(name, str) or not name or "\\" in name:
+        raise ValueError(f"invalid relative path: {name!r}")
+    path = Path(name)
+    if path.is_absolute() or PureWindowsPath(name).drive or ".." in path.parts:
+        raise ValueError(f"path must stay inside corpus: {name}")
+    result = (root / path).resolve()
+    if not result.is_relative_to(root.resolve()):
+        raise ValueError(f"path escapes corpus: {name}")
+    return result
 
 
-def _absorb_browser_fixed(pages, base):
-    browser_fixed = base / "browser-fixed-20260911-113745-20e80d"
-    for n in (1, 2, 3):
-        meta, raw = browser_fixed / f"{n}.source.json", browser_fixed / f"{n}.raw.wikitext"
-        if not raw.exists():
-            continue
-        title = None
-        if meta.exists():
-            m = re.search(r"'title': '([^']+)'", meta.read_text(encoding="utf-8"))
-            title = m.group(1) if m else None
-        pages.setdefault(title or f"page{n}", {"origins": []})
-        pages[title or f"page{n}"].setdefault("wikitext", raw.read_text(encoding="utf-8"))
-        pages[title or f"page{n}"]["origins"].append("browser-fixed")
+def checked_bytes(root, record):
+    path = relative_file(root, record["path"])
+    data = path.read_bytes()
+    if sha256(data) != record["sha256"]:
+        raise ValueError(f"SHA256 mismatch: {record['path']}")
+    return data
 
 
-def _absorb_tag_fixtures(pages):
-    untracked = _untracked_ref()
-    for fixture in ("vcpedia_fixed_acceptance.json", "vcpedia_frozen_consecutive.json"):
-        blob = subprocess.run(["git", "show", f"{untracked}:{_FIXTURE_DIR}/{fixture}"],
-                              capture_output=True, text=True, encoding="utf-8", cwd=str(SERVER)).stdout
-        for record in json.loads(blob):
-            page = record["response"]["parse"]
-            pages.setdefault(page["title"], {"origins": []})
-            pages[page["title"]].setdefault("wikitext", page["wikitext"]["*"])
-            pages[page["title"]]["origins"].append(f"tag:{fixture}")
-    blob = subprocess.run(["git", "show", f"{untracked}:{_FIXTURE_DIR}/vcpedia_recorded_lyrics.json"],
-                          capture_output=True, text=True, encoding="utf-8", cwd=str(SERVER)).stdout
-    for title, record in json.loads(blob).items():
-        pages.setdefault(title, {"origins": []})
-        pages[title].setdefault("wikitext", record["wikitext"])
-        pages[title]["origins"].append("tag:recorded_lyrics")
+def _active_unfiltered(soup):
+    form = soup.select_one("#mw-content-text form")
+    if form is None:
+        raise ValueError("active-users form missing")
+    username = form.select_one('input[name="username"]')
+    if username is None or username.get("value", ""):
+        raise ValueError("filtered active-users snapshot")
+    if form.select('input[type="checkbox"][checked]'):
+        raise ValueError("group-filtered active-users snapshot")
+    for link in soup.select("#mw-content-text a[href]"):
+        href = unquote(link["href"])
+        if re.search(r"[?&](offset|from|username|dir)=", href):
+            raise ValueError("active-users pagination is incomplete")
+    if soup.select("#mw-content-text .mw-nextlink, #mw-content-text .mw-prevlink"):
+        raise ValueError("active-users pagination is incomplete")
 
 
-def collect_candidates() -> dict:
-    """title -> {"wikitext": str, "html_path": str|None, "origins": [..]}"""
-    base = _artifacts_base()
-    pages = {}
-    _absorb_replay(pages, base)
-    _absorb_random(pages, base)
-    _absorb_browser_fixed(pages, base)
-    _absorb_tag_fixtures(pages)
-    return pages
+def parse_active_users(html, capture):
+    """Only an intact, unfiltered, single-page official list can classify users."""
+    url = unquote(capture.get("final_url", capture.get("url", "")))
+    if url != ACTIVE_URL or capture.get("http_status") != 200 or not capture.get("retrieved_at"):
+        raise ValueError("official active-users capture metadata missing/failed")
+    if "</html>" not in html.lower() or '"wgCanonicalSpecialPageName":"Activeusers"' not in html:
+        raise ValueError("truncated/challenge/non-active-users response")
+    soup = BeautifulSoup(html, "html.parser")
+    main = soup.select_one("#mw-content-text")
+    if main is None or "过去30天有过某种活动" not in main.get_text():
+        raise ValueError("official 30-day definition missing")
+    _active_unfiltered(soup)
+    users = {}
+    for link in main.select("li a.mw-userlink"):
+        row = link.find_parent("li")
+        count = re.search(r"过去30天有([\d,]+)次操作", row.get_text())
+        name = link.get_text(strip=True)
+        if not count or name in users:
+            raise ValueError("malformed/duplicate active-user row")
+        groups = [a.get_text(strip=True) for a in row.select('a[href^="/VCPedia:"]')]
+        users[name] = {"operations_30d": int(count[1].replace(",", "")),
+                       "groups": groups, "bot": "机器人" in groups}
+    if not users or len(users) != capture.get("user_count"):
+        raise ValueError("active-users count/completeness mismatch")
+    return users
 
 
-def structural_signature(wikitext):
-    import mwparserfromhell as mw
-
-    from src.world.get_new_songs.template_rules import template_name
-    code = mw.parse(wikitext)
-    return sorted(set(template_name(t.name) for t in code.ifilter_templates()))
+def activity(user, users):
+    if not user:
+        return "unknown"
+    return "active_30d" if user in users else "inactive_30d"
 
 
-def similarity_clusters(pages):
-    names = sorted(pages)
-    clusters = []
-    for i in range(len(names)):
-        for j in range(i + 1, len(names)):
-            a = set(pages[names[i]]["templates"])
-            b = set(pages[names[j]]["templates"])
-            if a and b and len(a & b) / len(a | b) >= 0.6:
-                for cl in clusters:
-                    if names[i] in cl or names[j] in cl:
-                        cl.update([names[i], names[j]])
-                        break
-                else:
-                    clusters.append({names[i], names[j]})
-    return clusters
+def _node_shape(node):
+    if isinstance(node, Template):
+        return ["template", str(node.name).strip().casefold(),
+                [[str(p.name).strip().casefold(), _shape(p.value)] for p in node.params]]
+    if isinstance(node, Tag):
+        return ["tag", str(node.tag).casefold(),
+                [[str(a.name), str(a.value)] for a in node.attributes], _shape(node.contents or "")]
+    if isinstance(node, Heading):
+        title = str(node.title)
+        kind = "lyrics" if "歌词" in title else "summary" if "简介" in title else "other"
+        return ["heading", node.level, kind]
+    if isinstance(node, Text):
+        text = str(node)
+        return ["text", bool(text.strip()), "\n" in text, bool(re.search(r"[()（）\[\]]", text)),
+                "-{" in text, "截至" in text]
+    return [type(node).__name__]
 
 
-def fetch_edit_metadata(titles):
-    """最后编辑者/时间（逐页）与站点最近变更的活跃编辑者计数。"""
-    import requests
-    s = requests.Session()
-    s.headers.update({"User-Agent": APP_UA})
-    edit = {}
-    for t in titles:
-        try:
-            r = s.get("https://vcpedia.cn/api.php", params={
-                "action": "query", "format": "json", "formatversion": "2",
-                "prop": "revisions", "titles": t, "rvprop": "timestamp|user", "rvlimit": "1"},
-                timeout=15)
-            for pg in r.json().get("query", {}).get("pages", []):
-                rev = (pg.get("revisions") or [{}])[0]
-                edit[t] = {"user": rev.get("user"), "timestamp": (rev.get("timestamp") or "")[:10]}
-        except Exception as exc:
-            edit[t] = {"user": None, "timestamp": None, "error": str(exc)}
-        time.sleep(0.15)
+def _shape(code):
+    parsed = code if isinstance(code, mw.wikicode.Wikicode) else mw.parse(str(code))
+    return [_node_shape(node) for node in parsed.nodes]
+
+
+def structural_signature(source):
+    """Ordered AST nesting, parameter slots, tags and business boundaries, not Jaccard."""
+    return sha256(json_bytes(_shape(mw.parse(source))))
+
+
+def curate(pages, sources, users):
+    """Conservative exact-structure grouping; pinned/boundary witnesses never drop."""
+    groups = defaultdict(list)
+    for page in pages:
+        signature = structural_signature(sources[page["title"]])
+        key = (signature, tuple(sorted(page["boundaries"])))
+        groups[key].append(page)
+    kept, dropped, decisions = [], [], []
+    for (signature, _), members in sorted(groups.items()):
+        ordered = sorted(members, key=lambda p: _preference(p, users))
+        representative = ordered[0]
+        for page in ordered:
+            protected = page.get("protected_reason")
+            keep = page is representative or bool(protected)
+            (kept if keep else dropped).append(page["title"])
+            decisions.append({"title": page["title"], "keep": keep, "representative": representative["title"],
+                              "ast_sha256": signature,
+                              "reason": protected or ("unique AST/business boundary representative" if keep else
+                                                     "same ordered AST and identical business boundaries")})
+    return {"kept": sorted(kept), "dropped": sorted(dropped), "decisions": sorted(decisions, key=lambda d: d["title"])}
+
+
+def _preference(page, users):
+    editor = page.get("revision_editor", {})
+    name = editor.get("user")
+    known = editor.get("source_sha1_matches") is True
+    active_human = known and name in users and not users[name]["bot"]
+    return (not bool(page.get("protected_reason")), not active_human, not known, page["title"])
+
+
+def _response_parse(data):
+    value = json.loads(data)
+    if "body" in value:
+        value = json.loads(value["body"])
+    return value["parse"]
+
+
+def _validate_pair(root, page, source):
+    capture = page["capture"]
+    raw = checked_bytes(root, capture)
+    response = gzip.decompress(raw) if capture["path"].endswith(".gz") else raw
+    if sha256(response) != capture["response_sha256"]:
+        raise ValueError(f"response SHA256 mismatch: {page['title']}")
+    parsed = _response_parse(response)
+    if parsed["title"] != page["title"] or parsed["pageid"] != page["pageid"]:
+        raise ValueError(f"response identity mismatch: {page['title']}")
+    if parsed.get("revid") != page["revid"]:
+        raise ValueError(f"capture revision mismatch: {page['title']}")
+    if parsed["wikitext"]["*"] != source:
+        raise ValueError(f"wikitext not from paired response: {page['title']}")
+    html = parsed["text"]["*"]
+    if sha256(html.encode()) != page["pair"]["html_text_sha256"]:
+        raise ValueError(f"HTML response hash mismatch: {page['title']}")
+    if page["pair"].get("kind") != HTML_KIND or page["pair"].get("same_response") is not True:
+        raise ValueError(f"pair evidence missing: {page['title']}")
+    if page.get("html") and checked_bytes(root, page["html"]).decode("utf-8") != html:
+        raise ValueError(f"HTML not from paired response: {page['title']}")
+    return html
+
+
+def _validate_page(root, page):
+    raw = checked_bytes(root, {"path": page["file"], "sha256": page["sha256"]})
+    source = raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    if not source or not page.get("boundaries") or not page.get("source_url"):
+        raise ValueError(f"page metadata incomplete: {page.get('title')}")
+    if urlparse(page["source_url"]).netloc != "vcpedia.cn":
+        raise ValueError("unexpected source site")
+    if page.get("source_only"):
+        if not page.get("protected_reason"):
+            raise ValueError("unexplained source-only sample")
+        return source, None
+    return source, _validate_pair(root, page, source)
+
+
+def load_manifest(path):
+    """Validate every listed input; return manifest plus decoded pairs outside timing."""
+    path = Path(path).resolve()
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != 2 or not manifest.get("rights"):
+        raise ValueError("unsupported manifest or missing rights")
+    root = path.parent
+    active = manifest["active_users"]
+    html = checked_bytes(root, active["snapshot"]).decode("utf-8")
+    users = parse_active_users(html, active["capture"])
+    if users != active["users"]:
+        raise ValueError("structured users differ from complete official snapshot")
+    for record in manifest.get("evidence", []):
+        checked_bytes(root, record)
+    pairs = {}
+    for page in manifest["pages"]:
+        if page["title"] in pairs:
+            raise ValueError("duplicate title; revisions must not be collapsed")
+        pairs[page["title"]] = _validate_page(root, page)
+    if not pairs or len(pairs) != manifest["candidate_count"]:
+        raise ValueError("missing corpus page")
+    titles = manifest["benchmark_titles"]
+    if not titles or len(titles) != len(set(titles)) or not set(titles) <= pairs.keys():
+        raise ValueError("invalid fixed benchmark group")
+    if any(pairs[title][1] is None for title in titles):
+        raise ValueError("benchmark pair missing")
+    return manifest, pairs
+
+
+def _input_records(manifest):
+    yield manifest["active_users"]["snapshot"]
+    yield from manifest.get("evidence", [])
+    for page in manifest["pages"]:
+        yield {"path": page["file"], "sha256": page["sha256"]}
+        if page.get("capture"):
+            yield page["capture"]
+        if page.get("html"):
+            yield page["html"]
+
+
+def freeze(manifest_path, output):
+    """Stage after complete validation. Never overwrite an existing corpus/oracle."""
+    manifest_path, output = Path(manifest_path).resolve(), Path(output).resolve()
+    if output.is_relative_to(manifest_path.parent):
+        raise ValueError("output must not be inside source corpus")
+    manifest, pairs = load_manifest(manifest_path)
+    if output.exists():
+        raise ValueError("output already exists; reproduce into a new directory, then review explicitly")
+    sources = {title: pair[0] for title, pair in pairs.items()}
+    decisions = curate(manifest["pages"], sources, manifest["active_users"]["users"])
+    # Imported evidence is not authorization to delete pages or approve parser output.
+    if decisions["dropped"]:
+        raise ValueError("redundancy candidates need separate human selection approval; no pages written")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".vcpedia-freeze-", dir=output.parent))
     try:
-        rc = s.get("https://vcpedia.cn/api.php", params={
-            "action": "query", "format": "json", "list": "recentchanges",
-            "rcprop": "user", "rclimit": "500"}, timeout=15).json()
-        return edit, Counter(c.get("user") for c in rc.get("query", {}).get("recentchanges", []))
-    except Exception:
-        return edit, {}
+        for record in _input_records(manifest):
+            target = relative_file(staging, record["path"])
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(checked_bytes(manifest_path.parent, record))
+        (staging / ".gitattributes").write_text(
+            "*.wikitext text eol=lf\n*.json text eol=lf\n*.html text eol=lf\n*.txt text eol=lf\n*.gz binary\n",
+            encoding="utf-8", newline="\n")
+        (staging / "manifest.json").write_bytes(json_bytes(manifest))
+        (staging / "curation.json").write_bytes(json_bytes(decisions))
+        meta = {p["title"]: {"file": p["file"], "sha256": p["sha256"]} for p in manifest["pages"]}
+        (staging / "meta.json").write_bytes(json_bytes(meta))
+        staging.rename(output)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    return decisions
 
 
-def curate(pages):
-    """选材：编者近期不活跃者剔除（Foxy 作为唯一真缺失触发样本例外）；相似簇留活跃代表。"""
-    dropped = {}
-    drop_for_dup = set()
-    for cl in similarity_clusters(pages):
-        ordered = sorted(cl, key=lambda t: -pages[t].get("edits_recent", 0))
-        drop_for_dup.update(ordered[1:])
-    kept = {}
-    for title, v in pages.items():
-        if title in drop_for_dup:
-            dropped[title] = "结构相似簇的重复代表"
-            continue
-        if v.get("edits_recent", 0) == 0 and title != "Foxy":
-            dropped[title] = f"最后编辑者 {v.get('editor')} 近期不活跃"
-            continue
-        kept[title] = v
-    return kept, dropped
-
-
-def _write_corpus(kept):
-    OUT.mkdir(parents=True, exist_ok=True)
-    meta_path = OUT / "meta.json"
-    previous = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
-    meta = {}
-    for title, v in sorted(kept.items()):
-        slug = re.sub(r"[^\w.-]+", "_", title).strip("_")
-        (OUT / f"{slug}.wikitext").write_text(v["wikitext"], encoding="utf-8", newline="\n")
-        meta[title] = {"file": f"{slug}.wikitext", "templates": v["templates"],
-                       "editor": v.get("editor"), "edit_ts": v.get("edit_ts"),
-                       "edits_recent": v.get("edits_recent"), "origins": v["origins"],
-                       "html_path": v.get("html_path"),
-                       "baseline": previous.get(title, {}).get("baseline")}
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-
-
-def main():
-    offline = "--offline" in sys.argv
-    pages = collect_candidates()
-    for v in pages.values():
-        v["templates"] = structural_signature(v["wikitext"])
-    counts = None
-    if offline:
-        meta_path = OUT / "meta.json"
-        if meta_path.exists():
-            old = json.loads(meta_path.read_text(encoding="utf-8"))
-            for t, v in pages.items():
-                if t in old:
-                    v["editor"], v["edits_recent"] = old[t]["editor"], old[t]["edits_recent"]
-    else:
-        edit, counts = fetch_edit_metadata(sorted(pages))
-        for t, v in pages.items():
-            v["editor"] = edit.get(t, {}).get("user")
-            v["edit_ts"] = edit.get(t, {}).get("timestamp")
-            v["edits_recent"] = int(counts.get(v["editor"], 0))
-    kept, dropped = curate(pages)
-    if not offline:
-        _write_corpus(kept)
-        (OUT / "curation.json").write_text(json.dumps(
-            {"dropped": dropped, "candidate_count": len(pages)},
-            ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"候选页（去重后）: {len(pages)} | 保留 {len(kept)} / 剔除 {len(dropped)}")
-    for t, why in sorted(dropped.items()):
-        print(f"  剔除 {t[:20]}: {why}")
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--offline", action="store_true", help="explicit reminder: this tool is always offline")
+    args = parser.parse_args(argv)
+    try:
+        decisions = freeze(args.manifest, args.output)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f"corpus freeze failed: {exc}", file=sys.stderr)
+        return 1
+    print(f"validated {len(decisions['kept'])} pages; oracle was not generated or refreshed")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

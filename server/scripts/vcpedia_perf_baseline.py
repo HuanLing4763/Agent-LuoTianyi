@@ -1,126 +1,150 @@
-"""离线性能基准：冻结页面上对比旧（渲染 HTML/BeautifulSoup）与新（wikitext/mwparserfromhell）的解析成本。
+"""Paired offline parsing only: full historical HTML extraction versus parse_details.
 
-不含网络与旧实现的业务逻辑，只测"拿到输入之后"的解析+抽取层；传输负载差异
-（渲染 HTML 数百 KB vs wikitext JSON 十几 KB）另由在线探针记录（2026-09-27 实测
-257KB vs 18KB，约 14 倍）。反爬行为是间歇性的，端到端计时不可 CI 化，故本基准
-只用冻结输入，结果可复现。
-
-用法：python scripts/vcpedia_perf_baseline.py
+Reads, hashes, imports and initialization are outside timing. This measures neither
+network transfer nor LLM latency. --check performs three complete controlled groups;
+wall-clock checks are deliberately not part of ordinary CI.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import platform
 import statistics
 import sys
 import time
+from importlib.metadata import version
 from pathlib import Path
 
-from bs4 import BeautifulSoup
-
 SERVER = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SERVER))
+for root in (SERVER, SERVER / "tests"):
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
 
-CORPUS = SERVER / "tests" / "support" / "vcpedia_corpus"
-RANDOM_REVIEW = SERVER / "data" / "test_outputs" / "precommit-review-random-20260912"
-ROUNDS = 5
+from support.vcpedia_legacy_html import parse_html  # noqa: E402
 
+from scripts.vcpedia_freeze_corpus import json_bytes, load_manifest, sha256  # noqa: E402
+from src.world.get_new_songs.wikitext_parser import parse_details  # noqa: E402
 
-def old_parse(html_text):
-    """旧路径的解析层：BeautifulSoup 全页解析 + .poem 文本提取。"""
-    soup = BeautifulSoup(html_text, "html.parser")
-    parts = []
-    for poem in soup.select(".poem"):
-        for tag in poem.select("rp, rt, .template-ruby-hidden, .reference, .hover-change-after"):
-            tag.decompose()
-        for br in poem.find_all("br"):
-            br.replace_with("\n")
-        parts.append(poem.get_text())
-    return "\n".join(parts)
+FIELDS = {"name", "type", "infobox", "summary", "lyrics", "spaced_lyrics"}
+WARMUPS = 2
+ROUNDS = 9
 
 
-def new_parse(wikitext, title):
-    """新路径的解析层：mwparserfromhell 解析 + 完整抽取。"""
-    from src.world.get_new_songs.wikitext_parser import parse_details
-    return parse_details(wikitext, title)
+def validate_result(result, title):
+    if not isinstance(result, dict) or not FIELDS <= result.keys() or result["name"] != title:
+        raise ValueError(f"incomplete parser result: {title}")
+    if not isinstance(result["infobox"], dict) or not isinstance(result["summary"], list):
+        raise ValueError(f"invalid fields: {title}")
 
 
-def timed(fn, *args):
-    best = None
-    for _ in range(ROUNDS):
-        start = time.perf_counter()
-        fn(*args)
-        elapsed = time.perf_counter() - start
-        best = elapsed if best is None else min(best, elapsed)
-    return best
+def prepare(manifest_path):
+    """All file IO/validation happens before any warmup or timed invocation."""
+    manifest, pairs = load_manifest(manifest_path)
+    root = Path(manifest_path).resolve().parent
+    by_title = {p["title"]: p for p in manifest["pages"]}
+    pages = []
+    for title in manifest["benchmark_titles"]:
+        entry = by_title[title]
+        source, html = pairs[title]
+        if html is None or not source:
+            raise ValueError(f"missing pair: {title}")
+        pages.append({"title": title, "source": source, "html": html,
+                      "wikitext_bytes": (root / entry["file"]).stat().st_size,
+                      "html_bytes": len(html.encode("utf-8")), "source_sha256": entry["sha256"],
+                      "html_sha256": entry["pair"]["html_text_sha256"]})
+    lock = json.loads((root / "benchmark-lock.json").read_text(encoding="utf-8"))
+    fingerprint = [{k: p[k] for k in ("title", "source_sha256", "html_sha256")} for p in pages]
+    if fingerprint != lock["sample_set"] or sha256(json_bytes(fingerprint)) != lock["sample_set_sha256"]:
+        raise ValueError("benchmark group differs from independently reviewed fixed sample lock")
+    return pages
 
 
-def _html_oracles():
-    """title -> 旧实现 HTML 表层路径（从回放记录解析，不写入仓库元数据）。"""
-    import glob
-    import subprocess
-    out = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                         capture_output=True, text=True, cwd=str(SERVER)).stdout
-    main_repo = next(line.split(None, 1)[1] for line in out.splitlines() if line.startswith("worktree "))
-    base = Path(main_repo) / "server" / "data" / "test_outputs"
-    html = {}
-    for run in ("run-37a454d954", "run-3b548a8817"):
-        for f in sorted(glob.glob(str(base / "precommit-review-cache-a7fb24317a" / run / "*.json"))):
-            d = json.loads(Path(f).read_text(encoding="utf-8"))
-            if not isinstance(d, dict):
-                continue
-            inp = d.get("input")
-            for e in ([inp] if isinstance(inp, dict) else (inp or []) if isinstance(inp, list) else []):
-                if isinstance(e, dict) and e.get("title") and e.get("html_path") and Path(e["html_path"]).exists():
-                    html[e["title"]] = e["html_path"]
-    for f in sorted(glob.glob(str(base / "precommit-review-random-20260912" / "*.api.json"))):
-        d = json.loads(Path(f).read_text(encoding="utf-8"))
-        t = (d.get("parse") or {}).get("title")
-        h = f.replace(".api.json", ".html")
-        if t and Path(h).exists():
-            html[t] = h
-    return html
+def environment(manifest_path):
+    files = {"legacy_adapter": SERVER / "tests/support/vcpedia_legacy_html.py",
+             "new_parser": SERVER / "src/world/get_new_songs/wikitext_parser.py",
+             "config_rules": SERVER / "config/vcpedia_templates.json",
+             "packaged_rules": SERVER / "src/world/get_new_songs/vcpedia_templates.json",
+             "manifest": Path(manifest_path)}
+    return {"python": sys.version, "platform": platform.platform(),
+            "dependencies": {name: version(name) for name in ("beautifulsoup4", "mwparserfromhell", "zhconv")},
+            "implementation_sha256": {name: sha256(path.read_bytes()) for name, path in files.items()}}
 
 
-def main():
-    meta = json.loads((CORPUS / "meta.json").read_text(encoding="utf-8"))
-    oracles = _html_oracles()
-    rows = []
-    for title, entry in sorted(meta.items()):
-        wt_path = CORPUS / entry["file"]
-        html_path = oracles.get(title)
-        if not html_path:
-            continue
-        wikitext = wt_path.read_text(encoding="utf-8")
-        html = Path(html_path).read_text(encoding="utf-8")
-        rows.append({
-            "title": title,
-            "wikitext_bytes": len(wikitext.encode("utf-8")),
-            "html_bytes": len(html.encode("utf-8")),
-            "old_s": timed(old_parse, html),
-            "new_s": timed(new_parse, wikitext, title),
-        })
+def _invoke(side, page, parsers):
+    value = page["html"] if side == "old" else page["source"]
+    return parsers[side](value, page["title"])
 
-    if not rows:
-        raise SystemExit("没有同时具备 wikitext 与 html oracle 的语料页")
-    payload_ratio = statistics.mean(r["html_bytes"] / max(r["wikitext_bytes"], 1) for r in rows)
-    old_total = statistics.median(r["old_s"] for r in rows)
-    new_total = statistics.median(r["new_s"] for r in rows)
-    print(f"样本: {len(rows)} 页（同时有冻结 HTML 与 wikitext 的页面）")
-    print(f"传输负载: 渲染 HTML / wikitext 中位数倍数 ≈ {payload_ratio:.1f}x")
-    print(f"解析+抽取耗时中位数: 旧 {old_total * 1000:.1f} ms | 新 {new_total * 1000:.1f} ms")
-    print()
-    print("%-18s %10s %10s %10s %10s" % ("页面", "HTML KB", "wiki KB", "旧 ms", "新 ms"))
-    for r in rows:
-        print("%-18s %10.1f %10.1f %10.1f %10.1f" % (
-            r["title"][:16], r["html_bytes"] / 1024, r["wikitext_bytes"] / 1024,
-            r["old_s"] * 1000, r["new_s"] * 1000))
-    out = SERVER / "data" / "test_outputs" / "perf-baseline-latest.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({"rows": rows, "payload_ratio": payload_ratio,
-                               "old_median_s": old_total, "new_median_s": new_total},
-                              ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"\n产物: {out}")
+
+def measure_page(page, page_index, parsers, clock):
+    samples = []
+    for iteration in range(WARMUPS + ROUNDS):
+        order = ["old", "new"] if (iteration + page_index) % 2 == 0 else ["new", "old"]
+        times = {}
+        for side in order:
+            if iteration < WARMUPS:
+                result = _invoke(side, page, parsers)
+            else:
+                start = clock()
+                result = _invoke(side, page, parsers)
+                elapsed = clock() - start
+                if elapsed <= 0:
+                    raise ValueError("nonpositive clock sample")
+                times[f"{side}_s"] = elapsed
+            validate_result(result, page["title"])
+        if iteration >= WARMUPS:
+            samples.append({"round": iteration - WARMUPS, "order": order, **times})
+    old = statistics.median(row["old_s"] for row in samples)
+    new = statistics.median(row["new_s"] for row in samples)
+    metadata = {k: v for k, v in page.items() if k not in {"source", "html"}}
+    return {**metadata, "samples": samples, "old_median_s": old, "new_median_s": new,
+            "paired_speedup": old / new, "file_bytes_ratio": page["html_bytes"] / page["wikitext_bytes"]}
+
+
+def benchmark(pages, *, parsers=None, clock=time.perf_counter):
+    if not pages or len({p["title"] for p in pages}) != len(pages):
+        raise ValueError("empty/duplicate benchmark group")
+    parsers = parsers or {"old": parse_html, "new": parse_details}
+    rows = [measure_page(page, index, parsers, clock) for index, page in enumerate(pages)]
+    old_sum = sum(row["old_median_s"] for row in rows)
+    new_sum = sum(row["new_median_s"] for row in rows)
+    fingerprint = [{k: p[k] for k in ("title", "source_sha256", "html_sha256")} for p in pages]
+    return {"scope": "offline parse + complete field extraction, no network/LLM/IO/import/init",
+            "warmups": WARMUPS, "rounds": ROUNDS, "sample_set_sha256": sha256(json_bytes(fingerprint)),
+            "sample_set": fingerprint, "rows": rows,
+            "median_paired_speedup": statistics.median(row["paired_speedup"] for row in rows),
+            "sum_old_medians_s": old_sum, "sum_new_medians_s": new_sum,
+            "sum_medians_group_ratio": old_sum / new_sum,
+            "median_file_bytes_ratio": statistics.median(row["file_bytes_ratio"] for row in rows),
+            "size_scope": "local UTF-8 file bytes, not network payload", "new_faster": new_sum < old_sum}
+
+
+def run(manifest_path, output, *, check=False, runner=benchmark):
+    pages = prepare(manifest_path)
+    context = environment(manifest_path)
+    groups = [runner(pages) for _ in range(3 if check else 1)]
+    passed = all(group["new_faster"] for group in groups)
+    result = {**context, "check": check,
+              "check_passed": passed if check else None, "groups": groups}
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(json_bytes(result))
+    return 0 if not check or passed else 1
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--check", action="store_true", help="three fixed complete groups, new sum of medians < old")
+    args = parser.parse_args(argv)
+    try:
+        status = run(args.manifest, args.output, check=args.check)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f"benchmark failed (no page silently skipped): {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps({"output": str(args.output), "exit_code": status}, ensure_ascii=False))
+    return status
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
