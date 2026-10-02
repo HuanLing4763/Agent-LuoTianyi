@@ -92,10 +92,11 @@ def load_material(spec: str, title_override: str | None = None) -> tuple[str, st
     title = "疑神疑鬼" if spec == "yishen" else spec.partition(":")[2]
     if spec != "yishen" and not spec.startswith(("title:", "lyrics:")):
         raise LabError("无法识别材料；使用 title:<corpus标题> 或 file:<路径>，不支持旧 fixed/consecutive 索引")
-    metadata = json.loads((CORPUS / "meta.json").read_text(encoding="utf-8"))
-    if title not in metadata:
-        raise LabError("corpus 中没有该标题或旧别名的实际映射；请使用 meta.json 中的 title")
-    path = (CORPUS / metadata[title]["file"]).resolve()
+    manifest = json.loads((CORPUS / "manifest.json").read_text(encoding="utf-8"))
+    entry = next((page for page in manifest["pages"] if page["title"] == title), None)
+    if entry is None:
+        raise LabError("corpus 中没有该标题或旧别名的实际映射；请使用 manifest.json 中的 title")
+    path = (CORPUS / entry["file"]).resolve()
     if not path.is_relative_to(CORPUS.resolve()):
         raise LabError("corpus file 必须位于 corpus 目录内")
     return path.read_text(encoding="utf-8"), title_override or title

@@ -66,7 +66,7 @@ AgentLuo旨在设计并实现一个具备角色扮演能力的虚拟歌手洛天
     - `crawler.merge_rendered_fragments` 与 `crawler.use_llm` 缺省均开启；原配置显式 `false` 不会被改成开启。关闭前者禁止可选片段 POST，关闭后者禁止总结与补提模型注册/调用；正常页面 GET 不受这两个可选功能开关禁止。
     - 总结使用 `llm_module`；补提使用独立 `extraction_llm_module`，模板选择 `dsv4-flash`（DeepSeek）并在 `available_llms` 定义对应接口。需按配置准备环境变量和提示词资源；不要将 API Key 写进仓库。启用且明确引用无效接口的配置会在初始化报错，未配置模块不借用另一个模型替代。
     - 默认规则同时位于 `config/vcpedia_templates.json` 与 `src/world/get_new_songs/vcpedia_templates.json`，发布默认规则时两份同步。源码文件存在但损坏会明确失败，不隐式回退。
-    - 验证与维护入口见 [World 测试说明](tests/unit/world/README.md)；全 PR 契约与证据核验见 [VCPedia 核验记录](tests/support/vcpedia_review/README.md)。
+    - 测试与工具入口见 [World 测试说明](tests/unit/world/README.md)；未完成项和历史报告见 [VCPedia 审查记录](tests/support/vcpedia_review/README.md)。
 
 3. 设置环境变量：
     - 根据config中所需要的api_key，配置对应的api密钥为环境变量。

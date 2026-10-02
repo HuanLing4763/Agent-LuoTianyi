@@ -1,41 +1,36 @@
 # World 单元测试
 
-本目录验证 World 时钟、Runtime 配置和单个任务的局部行为；公网、生产凭据和真实模型均不属于单元测试。连接数据库、Stage、Agent 或结算路由的场景位于 `tests/integration/world`，真实 VCPedia/B 站探测位于 `tests/e2e/external`。
+本目录验证World时钟、Runtime配置和任务局部行为；公网、生产凭据和真实模型不属于单元测试。数据库、Stage、Agent或结算路由场景在`tests/integration/world`，真实站点探测在`tests/e2e/external`。分层与执行说明见[`tests/README.md`](../../README.md)，不变量见[`tests/INVARIANTS.md`](../../INVARIANTS.md)。
 
-统一的分层定义、执行命令和覆盖率门禁见 [`tests/README.md`](../../README.md)，不变量证据见 [`tests/INVARIANTS.md`](../../INVARIANTS.md)。
+## VCPedia
 
-## VCPedia PR #195
+- [进行中spec](../../../../docs/开发进程文档/vcpedia-wikitext-migration.md)：唯一业务契约。
+- [审查记录](../../support/vcpedia_review/README.md)：未完成项与历史报告，不维护审核框架。
+- [样本与比较说明](../../support/vcpedia_corpus/README.md)：manifest、独立oracle、权利及内容/性能命令。
 
-- [进行中统一 spec](../../../../docs/开发进程文档/vcpedia-wikitext-migration.md)：产品行为与稳定验收ID。
-- [全PR文档与工单核验](../../support/vcpedia_review/README.md)：历史文档合并/删除、旧声明限制、双向验收矩阵与本轮结果。
-- [配对语料与独立内容预期](../../support/vcpedia_corpus/README.md)：源码/渲染片段身份、来源、权利说明、选材与效果/性能口径。
+### 离线测试与Ruff
 
-### 离线回归与门禁
+从`server`目录使用项目依赖环境执行。
 
-以下命令从 `server/` 执行，Python使用项目依赖；Ruff固定为0.14.10，不通过`--isolated`跳过项目配置。
-
-```powershell
+```text
 python -m pytest tests/unit/world -q
 python -m pytest tests/integration/world tests/integration/packaging -q
-python scripts/check_pr_python.py --base 910af449680091e339e0e6fd517d08c1f5222923 --head HEAD --include-working-tree
 ```
 
-检查入口打印base/head、版本、模式、文件数及实际选中文件。提交前使用`--include-working-tree`检查候选工作区，包括待提交新增Python文件；结果不是提交认证。复核固定提交时去掉该选项，实际检出的HEAD必须等于目标head，所选Python源码、检查工具本身及根目录/server/所选路径祖先中的Ruff配置不得有暂存或未暂存偏离；目标提交中的应检文件被本地删除不能跳过后报通过。此范围不是全仓库强隔离，无关文档、数据及未初始化子模块不作为失败依据。不要用`ruff check tests/unit/world/`的退出0推断所有测试都被检查：项目`include`对目录发现生效，显式文件与目录行为不同。
+Ruff锁定**0.14.10**，使用项目规则，包括C901，不使用`--isolated`。根据PR的base…HEAD及本次未提交变更，手工列出仍存在的全部变更`.py`文件（源码、工具、测试及新增文件），执行`python -m ruff check <逐个列出的PR变更.py路径>`。占位符须替换为实际文件列表；**列表为空就不执行，不能退回检查整个目录。** 目录发现受项目`include`影响，不能用单个目录退出0替代完整PR文件检查。不再使用自制提交认证脚本。
 
-跨Windows编码验证时，分别使用`python -X utf8=0 -m pytest ...`和`python -X utf8=1 -m pytest ...`，同时记录`sys.flags.utf8_mode`与`locale.getpreferredencoding(False)`。前者只有实际编码为`cp936`/GBK时才能作为GBK证据；不要以终端输出编码代替文件默认编码，也不要用`PYTHONUTF8=1`掩盖未指定文件格式的读取。
+需验证Windows默认编码时分别使用`python -X utf8=0 -m pytest ...`与`python -X utf8=1 -m pytest ...`，记录`sys.flags.utf8_mode`及`locale.getpreferredencoding(False)`；只有实际为cp936/GBK才称GBK证据。
 
-`test_vcpedia_lyrics_recovery.py`只验证两份已有源码的当前歌词与关键词，不运行旧HTML实现。`test_vcpedia_corpus_baseline.py`及配对工具的内容预期与行为快照用途分别说明；非空、字数、`needed`不是完整性判卷的替代品。原24首列表比较与刹那芳华64→723仍按历史证据单列，不由新的样本数量自动承接。
+歌词恢复测试只验证已有源码的当前歌词与关键词，不单独证明旧HTML为空。内容测试验证已实现的真实正例和评分器行为，不要求已知错误保持不变；内容报告的`--check`当前因未满足独立预期应退出1。非空、字数或`needed`均不是完整性证明。原24首比较与刹那芳华64→723仍待原同批证据。
 
 ### 提示词实验
 
-默认仅离线渲染提示词；输出目录应选新建目录，产物位于被忽略的`data/test_outputs`，不提交密钥或个人配置。
+默认离线，标题映射使用manifest；输出使用新的`data/test_outputs`子目录，不提交凭据。
 
-```powershell
+```text
 python scripts/vcpedia_prompt_lab.py --material title:Foxy --out data/test_outputs/prompt-lab-local
 ```
 
-`--dry-run`明确要求离线；`--live`才发起真实、可能计费的模型请求，需配置`extraction_llm_module`及其provider/凭据。live实验只支持配置中的OpenAI-compatible接口（如模板的DeepSeek接口），不宣称覆盖所有自定义provider类型。`--provider`只在显式live实验中覆盖补提provider，不默默回退总结模型；A/B用`--prompt`与`--prompt-b`。本工具不发送片段POST，采用生产材料与合并校验但不是完整在线采集验收，失败状态须与报告一起查看。
+`--dry-run`明确离线；`--live`才发出真实、可能计费的模型请求，需配置`extraction_llm_module`及provider/凭据。live仅支持配置中的OpenAI-compatible接口；`--provider`只覆盖显式live的补提provider，不回退总结模型。A/B使用`--prompt`与`--prompt-b`。工具复用生产材料与回答/合并校验，不发送片段POST，不代表完整在线采集验收。
 
-### 配对效果与性能
-
-可执行命令、固定样本集合、基准协议与输出字段以[语料说明](../../support/vcpedia_corpus/README.md)为准。普通单测验证工具的统计、输入完整性与失败语义；真实计时是独立受控运行，不把本机某次毫秒数字作为所有CI机器的保证。冻结HTML若是API `parse.text`，输入字节比不能称网络传输量。
+性能与内容比较复用小fixture读取模块。普通测试不联网重验活跃页，不自动选材或断言历史文档；真实性能单列受控运行，不把本机毫秒数作为CI保证。

@@ -1,172 +1,30 @@
-# PR #195 全范围文档、工单与验证核验
+# VCPedia PR #195 审查记录
 
-本记录服务于 [PR #195](https://github.com/SheepLiu712/Agent-LuoTianyi/pull/195) 和 [Issue #196](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196)。权威产品契约为进行中的 [VCPedia spec](../../../../docs/开发进程文档/vcpedia-wikitext-migration.md)。本文件是证据与承接台账，不是第二份 spec，也不以记录当前实现替代独立内容预期。
+关联 [PR #195](https://github.com/SheepLiu712/Agent-LuoTianyi/pull/195) / [Issue #196](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196)。产品约束只维护[进行中 spec](../../../../docs/开发进程文档/vcpedia-wikitext-migration.md)；操作见[World 测试说明](../../unit/world/README.md)和[语料说明](../vcpedia_corpus/README.md)。
 
-## 核验边界
+## 本次减法
 
-- 原审查 head：`b0d0a8ee10ad441bd19937959ba885d26299772c`。
-- merge-base：`910af449680091e339e0e6fd517d08c1f5222923`。
-- 文档范围包括原18个提交中的新增、修订、合并、删除；并纳入本轮所有新增说明。不是只检查最后两个提交或本轮修改过的Markdown。
-- `.wikitext` 是外部来源材料，JSON配置/提示词/元数据及源码、测试、工具的docstring也是契约与证据检查对象。
-- 当前客户端分支、#194/#197的独立外部测试修复不属于本PR修改范围。#123/#124/#125为已关闭未合并的旧PR栈，仅提供历史背景。
-- 原始文档及范围清单见 [document_inventory.json](document_inventory.json)。该文件记录审查版本的历史；本轮新增文件另在最终验证中登记。
+- 保留单一输入 manifest、独立内容 oracle、已有真实原件、旧 HTML 对照、提示词实验、性能与内容报告。fixture 读取只用小模块，不另设 CLI 或认证框架；不扩大第三方素材、不重新生成预期。
+- 删除重复元数据、选材/历史文档台账及专属脚本、测试；一次选材调查留作静态记录。官方活跃页记录仅为 manifest 的背景信息，不是普通测试前置条件；不再自动选材、审计提交数量或测试历史文档条款。
+- **N8：撤回自制 commit proof / 提交认证机制，不撤回 Ruff。** 使用锁定 Ruff 0.14.10 和项目规则，对 PR 变更 Python 文件显式运行标准检查；不引入新的 CI 流程。
+- 内容 `--check` 改为本次声明范围内当前解析器满足全部独立预期才返回 0。已知缺口仍报告，不要求旧/新实现保持错误，也不靠固定失败快照把测试刷绿。性能比较不设固定页数或第二份锁文件，每次报告实际样本身份。
 
-## 一、三份历史文档的去向
+## 仍未完成
 
-| 原路径（仓库根相对） | 历史 | 本轮承接 |
-| --- | --- | --- |
-| `docs/开发进程文档/vcpedia-wikitext-migration.md` | `b6969eb`新增，`1caa2d0`/`159f4bf`修订，`93c3218`删除 | 恢复为统一进行中spec，保留原1–19编号并明确边界 |
-| `docs/开发进程文档/vcpedia-extraction-rules.md` | `ed6795b`新增，`159f4bf`合并删除 | 不复活平行spec；count策略、Ruby回退、字形保护、唯一材料入口由VCP-07/12/13/14/15/20/21承接 |
-| `docs/开发进程文档/vcpedia-keyword-baseline.md` | `d48af59`新增，后有多次数字/口径修订，`93c3218`删除 | 不将混杂样本的旧数字重写为新事实；范围决定由VCP-16/17/19承接，历史证据限制记在本文件 |
+- 原当日列表 **24 首**同批新旧比较，以及“刹那芳华 **64→723**”仍缺原同批输入/版本证据；不能由精选语料替代。
+- 当前内容仍有缺口：Foxy、Sharing、社畜的歌词与部分简介事实尚未满足独立预期。因此内容 `--check` 当前应退出 1；默认仅生成报告成功可退出 0，不代表效果达标。槽位有重叠，不称独立缺陷数或准确率。
+- 本轮未取得真实补提模型端到端质量、生产库存量重验或全站等价证据；第三方歌词等再分发权利仍需维护者核验。
+- #196 的未完成验收不因工具精简关闭。进行中 spec 保留；完成后按[开发守则](../../../../docs/开发守则.md)另开清理工单处理。
 
-原全文可在Git固定版本复查：迁移spec与关键词记录取`0f9a758`，提取规则取`159f4bf^`。非代码参考`server/tests/support/legacy_vcpedia_parser.py`在`954cdfb`新增、`2ccf061`删除；最终原测试是内联期望而非运行时执行旧HTML实现，本轮真实旧算法比较另在语料说明标明来源。
+## 历史报告
 
-### 生命周期纠正
+[results/](results/)保留原报告，不覆写为本轮结果。下列链接固定在清理前提交；测试数量、样本集合、运行环境、失败与旧成功码仅属于当时运行，不能沿用作本轮通过结论。尤其旧内容报告的 `--check=0` 只是当时“与已审状态一致”，不是全部正确。
 
-此前“开发进程目录已废弃”不符合[开发守则](../../../../docs/开发守则.md)。其中第36、59行所述流程是：进行中spec留存；实现审核合入dev且验收有证据后，关闭功能工单、另开清理Issue、在dev独立删除。`93c3218`提前删除进行中spec与此不同。
-
-PR评审确认“文件已删除、Issue链接已同步”，不等于明确豁免这一流程。当前恢复一份统一spec，不再维护PR附录/Issue正文各自一份拷贝。#196保持开放直至完成条件满足；#197不是清理Issue。
-
-## 二、全PR仍有效的说明覆盖
-
-| 类别 | 核查对象 | 检查要点 |
-| --- | --- | --- |
-| 工具 | `scripts/vcpedia_freeze_corpus.py`、`vcpedia_perf_baseline.py`、`vcpedia_prompt_lab.py`及本轮检查入口 | 默认行为、实际输入、示例、网络/写盘、失败退出、统计定义一致 |
-| 业务源码 | `wiki_api`、`wikitext_parser`、`template_rules`、`text_conversion`、`source_extraction`与修改的`vcpedia_fetcher`、`daily_new_song_fetcher`、`task` | 返回值、状态范围、转换顺序、开关、边界不因重构失真 |
-| 配置与提示词 | 源码/包内`vcpedia_templates.json`、`config.json.template`、提取prompt、`pyproject.toml` | 两份规则一致；provider闭合；依赖/包资源可用；缺省与显式关闭区分；模型职责分离 |
-| 原9个新增测试说明 | transport、wikitext_equivalence、material_counts、infobox_staff_scope、lyrics_recovery、keyword_contract、rules_packaging、supplement_switches、corpus_baseline | 人工样例/真实响应、快照/独立oracle、规则/真实模型证据不混称 |
-| 语料 | manifest、meta、curation、源码、HTML、独立预期、活动统计 | 样本身份、hash、配对版本、活动来源、编辑归属、第三方权利、选材理由 |
-| 长期入口 | `server/README.md`、`server/tests/README.md`、`server/tests/unit/world/README.md`、代码地图/守则/spec模板 | 本PR导致的新断链和部署/命令缺口；不以内部新增文件强迫重写全仓库地图 |
-| 线上 | #195正文/评论/review、#196正文/评论、旧PR替代关系 | 对应最终head、声明与证据一致、无重复标准或遗漏条款 |
-
-原`tests/INVARIANTS.md`中Agent旧文档断链在merge-base已存在，不计作本PR新引入问题。
-
-## 三、文档 ↔ 工单 ↔ 证据矩阵
-
-Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过；当前运行状态见第六节，历史或未验证项不得混入通过数。
-
-| spec ID | 交付契约 | 仓库证据入口（server相对） | 证据范围/边界 |
+| 历史批次 | 验证 | 内容 | 性能 |
 | --- | --- | --- | --- |
-| VCP-01–04 | API身份/请求形状/挑战与失败 | `tests/unit/world/test_vcpedia_transport_contract.py` | Fake传输契约，不保证某个UA永远200/403 |
-| VCP-05 | 首框归集、字段优先级、有效页级容器 | `tests/unit/world/test_vcpedia_infobox_staff_scope.py` | 使用真实制作人员模板、有效角色参数；不把无效嵌套的特殊结果立为验收 |
-| VCP-06–07 | 展示项、独立简介/歌词、首候选、Ruby | `tests/unit/world/test_vcpedia_wikitext_equivalence.py`及解析定向回归 | 人工样例不是全站等价证明；新增用例绑定具体语义 |
-| VCP-08 | 真实结构内容质量 | `tests/support/vcpedia_corpus/README.md`及内容预期测试 | 预期依据人工选块；自动来源测试仅整页出现性，不证明章节归属；相关布尔槽位分列，不当独立准确率 |
-| VCP-09 | 原24首新旧比较 | 历史`0f9a758`关键词记录 | 待原输入/版本补证；不由新的精选语料代替 |
-| VCP-10 | 两首当前歌词/关键词可用 | `tests/unit/world/test_vcpedia_lyrics_recovery.py`、`tests/support/vcpedia_lyrics_recovery.json` | 不加载旧HTML，不单独证明“迁移前为空” |
-| VCP-11 | 刹那芳华64→723 | 原PR/历史基线人工记录 | 本轮未重新取得同批输入，历史观察待补证 |
-| VCP-12–13 | 规则加载/形状/查询/冻结 | `tests/unit/world/test_vcpedia_rules_packaging.py`及规则校验回归 | 错误需定位；不存在与损坏两种情况不混淆 |
-| VCP-14–15 | 缺口、双开关、注册/调用、先补后总结 | `tests/unit/world/test_vcpedia_supplement_switches.py`、`test_world_task_vcpedia_new_songs.py` | 两个Fake模型有不同职责；不据此声称真实模型保真 |
-| VCP-16–17 | 索引安全与非目标 | `tests/unit/world/test_vcpedia_keyword_contract.py` | 6–50及`=>`规则；不外推小样本英文结论 |
-| VCP-18 | 依赖/配置/provider/wheel资源 | `tests/integration/packaging/test_pyproject_installation.py`及配置回归 | 隔离加载，不宣称wheel包含所有部署资源 |
-| VCP-19 | 存量不迁移、World仅投递 | `tests/integration/world`、`test_world_task_vcpedia_new_songs.py` | 不访问生产库；历史3320首全量数据未重新核验 |
-| VCP-20–21 | count清理、保护与转换顺序 | `tests/unit/world/test_vcpedia_material_counts.py`及资料字段内容回归 | 同时测材料与最终字段，不能仅数infobox条目 |
-| VCP-22 | 提示词实验安全默认与契约 | `scripts/vcpedia_prompt_lab.py`及离线CLI测试 | 默认不联网，实验不启用片段POST，不等同完整生产链 |
-| VCP-23 | 离线效果/成本与真实旧算法 | `scripts/vcpedia_perf_baseline.py`及工具测试 | 声明集合与lock一致，不硬编码页数；真实计时单列，不承诺显著性或最小裕量 |
-| VCP-24 | 活动统计/配对/去重/独立预期 | `scripts/vcpedia_freeze_corpus.py`及语料工具测试 | 完整官方30天名单；不自行统计recentchanges |
-| VCP-25 | 全变更文件项目lint与目标身份 | `scripts/check_pr_python.py`及门禁测试 | 显式文件与实际集合一致；固定提交与候选工作区区分，不能用本地删除/修补认证目标提交 |
-| VCP-26 | 本文件、inventory和Issue双向核验 | 本文件及`document_inventory.json` | 每项承接或标待验；删除文档不删除承诺 |
+| 5b7b932 批次 | [validation](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/validation.json) | [effect](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/effect.json) | [performance](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/performance.json) |
+| N6 / N8–N15 批次 | [validation](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/validation-n6-n15.json) | [effect](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/effect-n6-n15.json) | [performance](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/results/performance-n6-n15.json) |
 
-## 四、撤回或限定的历史声明
+旧规范去向、早期调查和声明纠正见[清理前记录](https://github.com/SheepLiu712/Agent-LuoTianyi/blob/c3521126a8a8907cce5762183d4b9d2647824a8f/server/tests/support/vcpedia_review/README.md)。不继续维护历史清单或双向条款核验框架。
 
-### Ruff与测试
-
-- `b0d0a8e`的N1已独立复现：22个变更Python文件，4个F401＋3个E501。旧目录命令只选中打包测试1个文件，其“全绿”不能承载整个PR的门禁声明。
-- 旧复跑的242 world、1014全量通过/1个401失败、26个world集成及wheel成员检查是旧head结果。不能复制到新head，也不能把“1失败”简写为全量全绿。
-
-### 页面数量与活动统计
-
-- 缓存21＋随机10是历史配对候选集；另批browser-fixed、tag fixture和24首在线列表不能直接相加，必须按页面/内容身份去重。
-- 旧35候选包含`page1/2/3`伪标题；旧26页数字不是新选材目标。
-- 旧“最近500次编辑”方法错误判定Fiction Blue、小祺、这只阿皮有点皮不活跃。官方特殊页完整名单明确最近30天活跃定义，三者在本轮名单中；纠正后按结构与独有边界重新决定页面价值，不机械恢复所有页面。
-- 活动统计操作数不是编辑次数；当前最后编辑者不是该历史版本结构作者；bot的最后操作不能替代人工归属证据。
-
-### 内容与真实模型
-
-- 将所有HTML `.poem` 字符数累加，再与首个歌词候选比较，不能推出“山塘恋雨只抽到18%”。多版本、原译或旁注须分别识别。
-- `lyrics`非空不代表完整，`needed=true`不代表模型调用一定必要。保留非空字段的补全设计，不实施一刀切禁补提，也不按某一模型的单次表现加包含性守卫。
-- 历史prompt lab发送`materials.raw`，而生产发送经过转换/计数剔除的`materials.text`。旧几次真实模型输出是当时提示词实验，不是本轮生产补提质量证明。
-- “某模型本次逐字照抄”不是零损害保证；“某变体一次没输出null”不能证明所有无变化设计无效。
-
-### 性能与网络
-
-- 原26.7由平均值计算，却标成中位数；旧侧简化poem提取与新侧完整解析不对称。旧53.0→5.6或63.1→7.0不能作为新基准的通过阈值。
-- 冻结HTML通常是API `parse.text`，文件字节比不是HTTP传输量；离线解析耗时不是端到端速度。
-- 历史UA探针既出现过403，也出现过两种UA均200。仅以一次记录称“UA造成必然失败”不成立；应用身份与挑战兜底仍是明确传输契约。
-
-### 关键词旧记录
-
-- 原关键词文档混用了12/20/24首及不同时间库内统计；不把这些数字合为一个样本总体。
-- “全部在6–50内”与同表“>50有2条”矛盾；“本次无关键词代码改动”又被后来的`=>`过滤修复改变。
-- 两首未出现纯拉丁片段，不等于所有英文歌词都会被窗口过滤；“保留行结构”可能改变新采集关键词粒度，不影响旧索引是另一条存量不迁移约束。
-
-## 五、线上工单双向检查
-
-实施前已经保存并核对#195/#196正文、维护者评论和`b0d0a8ee`审查，区分这些内容与提交说明。
-
-正向：本文登记的全PR文档条款 → 统一spec ID → #196验收 → 代码/测试/固定材料证据。
-
-反向：#196/#195每项“完成/通过/可复现/默认/不变”声明 → 相同spec ID → 实際命令结果与适用版本。孤立链接、粗指标与历史观察不能替代验收。
-
-需同步纠正的旧正文包括：仍写未跑锁定版、补提默认关闭、26页承接24首、mean称median、双关零外部访问、spec目录废弃、#194仍等待任意顺序合并。旧#123–125未合并，不将其关闭状态当作已交付。
-
-线上更新完成后读回核对：标题、head、spec定位、验收表、数字、失败/未验证、依赖与关闭条件。#196未达到原9/11等条款时保持开放，并在重新请求审查时明示，不以新的通过数掩盖。
-
-## 六、5b7b932 修复批次的验证记录
-
-以下是该批次历史结果，不是后续测试输入清理的测试数量。后续记录见第七节。结果绑定源码的LF规范化SHA256、manifest和实现/规则hash，见 [validation.json](results/validation.json)。原始计时样本见 [performance.json](results/performance.json)，内容项结果见 [effect.json](results/effect.json)。这些是一次受控运行记录，不自动随代码变动刷新；变更后须重跑。提交身份由包含这些文件的提交提供，避免报告嵌入自身提交哈希的循环。
-
-| 验证 | 实际结果 | 范围 |
-| --- | --- | --- |
-| 锁定Ruff0.14.10 | 31个Python文件，实际`--show-files`集合一致，退出0 | merge-base至原head＋本轮工作区全部新增/修改Python |
-| 干净导出相关测试 | 579 passed，退出0 | `tests/unit/world`、`tests/integration/world`、`tests/integration/packaging`；当时继承`PYTHONUTF8=1`，未验证默认GBK |
-| 全量单测 | 1324 passed / 1 failed，退出1 | 唯一失败为既有`test_llm_service.py::TestLLMService::test_register_llm_module`真实请求401；未修改或跳过以刷绿 |
-| wheel | 相关测试中通过 | 构建后隔离`-I -S`子进程真实导入规则并解析，核对模块来自wheel而非源码 |
-| `compileall src` | 退出0 | 干净导出树 |
-| 离线重组/效果/性能/提示词示例 | 均退出0 | 初始没有`.git`、作者`server/data`和密钥文件；工具输出使用外部临时目录 |
-
-效果`--check`退出0只表示与已审布尔结果一致，不表示全部正确。历史精选12页有78个布尔检查槽位，旧58项满足、新67项满足，**新仍有11个未满足槽位，`effect_complete=false`**。全文匹配和其派生代表行检查有重叠，槽位不是统计独立的正确率分母，11也不是独立缺陷数；归一化歌词全文匹配另单列旧2/12、新9/12。预期独立于生产解析器生成，与检查槽位互相独立是两回事。保留Foxy、Sharing、社畜和部分简介事实的问题，未把旧有失败解释成本轮新回归，也未删出语料。
-
-该次性能配置选择8页，每页2次预热＋9轮，三组均满足新侧medians总和小于旧侧；8是实验样本规模，不是工具硬编码的永久约束，也没有预设最小改善幅度。原始报告中的整组比为约5.869 / 4.898 / 5.429，配对比中位数约7.208 / 6.974 / 7.382；冻结输入字节比中位数约30.475。仅为此环境的离线解析，不是网络/模型/生产吞吐速度，也不沿用旧26.7口径。
-
-非作者复核发现并关闭三类本轮问题：保护空值被first-wins锁住、实验原始响应的JSON转义凭据脱敏绕过、选材台账29/32保留标志矛盾。修复及新增回归均再次核对。首次干净导出脚本遗漏应用新增LF属性造成hash失败，导出步骤已修正；这次失败未计作产品通过，后续导出全套验证通过。
-
-仍未通过或未验证的验收：VCP-09原24首、VCP-11刹那芳华历史差异缺原同批输入；VCP-08尚有内容缺口；真实补提模型的本轮端到端质量未测试；VCP-19不访问生产库作全量重验；#196在这些证据与最终维护者验收闭合前保持开放。全量单测中的401是实际发生的外部请求失败，因此本轮不能笼统说“从未发出任何模型请求”，只能说“未取得新的真实补提成功证据”。
-
-## 七、2026-10-02 测试输入与契约清理
-
-本次根据站点模板定义核对合成测试，不改变产品解析代码、规则配置、真实冻结源码、内容oracle或历史参考算法。
-
-- 使用不存在的`创作者名单`模拟制作信息的用例，改为真实的 [VOCALOID Songbox Introduction，revision 6619](https://vcpedia.cn/index.php?title=Template:VOCALOID_Songbox_Introduction&oldid=6619)。该模板支持`groupN/listN`角色行和具名角色字段，两种有效写法均保留。重复角色用多组角色行，不用重复参数名冒充多行。
-- 普通 [VOCALOID Songbox，revision 539268](https://vcpedia.cn/index.php?title=Template:VOCALOID_Songbox&oldid=539268)不使用`简介/歌词`槽；有正文槽需求的解析和wheel样例改为 [VOCALOID Small Songbox，revision 451630](https://vcpedia.cn/index.php?title=Template:VOCALOID_Small_Songbox&oldid=451630)。普通框的制作角色移到staff，以真实的`演唱/UP主`验证首框值优先与补空。
-- 包装遍历使用 [Hide，revision 2184](https://vcpedia.cn/index.php?title=Template:Hide&oldid=2184) 的`内容`或 [Toggle，revision 109](https://vcpedia.cn/index.php?title=Template:Toggle&oldid=109) 的`content`，不再以`Hide|content`证明有效正文抽取。
-- 删除`test_nested_songboxes_do_not_end_first_box_interval_through_frames`及其6个参数化构造。该测试把无实际依据的“歌曲框参数内歌曲框必须不计数”固化成独立业务义务；不通过换个模板名继续保留这项特殊预期。
-- 保留页级多框、staff前后范围、字段合并优先级、可见空值、nowiki/LC、Ruby、歌词、表格和故意非法JSON/provider配置等真实契约或通用健壮性测试。通用count材料测试只是任意模板参数清洗，不宣称远程模板必须存在；其中的歌曲框示例也换成有效字段。
-- 不新增“参数内部 staff 必须排除”的测试或产品分支。VCP-05改为识别首框后通用遍历归集，不要求staff必须是页级兄弟节点；无效渲染构造不再额外产生排除或计数验收。
-
-这里的测试仍是人工构造输入，不冒充从站点冻结的真实页面。有效模板定义提供输入接口依据，字段合并预期由已确认业务策略决定。历史缺口和其他复审事项不因本次测试清理自动关闭。
-
-历史验证：lty环境Ruff0.14.10显式检查完整PR的31个Python文件，`--show-files`集合一致且退出0；六个直接修改的测试文件定向回归164 passed；`tests/unit/world`＋`tests/integration/world`＋`tests/integration/packaging`共573 passed，包含wheel真实导入解析。该次继承`PYTHONUTF8=1`，不是默认GBK兼容性的验证。相对第六节579项减少6项，恰为移除的嵌套计数参数化用例；不是跳过失败测试，也没有修改产品去满足剩余输入。全量`tests/unit`、真实站点/模型和性能计时本次未重跑，第六节及其JSON仍是`5b7b932`批次历史证据，不自动升级为新结果。
-
-## 八、N6 / N8–N15：编码、验收身份与证据口径
-
-本次不改歌曲解析、补提决策、规则配置、实际样本集合或人工内容预期，不因审查意见新增“必须8页”或最低性能裕量。
-
-| 项 | 修改与边界 |
-| --- | --- |
-| N6 | 两处测试读取UTF-8 JSON显式指定编码；性能失败报告用中文内容覆盖同类隐患。此前仅UTF-8模式通过的结论补记环境限制，修后分别用`-X utf8=0`与`-X utf8=1`并记录实际文件默认编码。 |
-| N8 | 固定提交验收要求当前HEAD等于目标head，相关Python源码、门禁脚本与Ruff配置不偏离；不能以本地删除/修补跳过目标提交的错误。显式工作区检查允许候选变更但输出不是提交认证。 |
-| N9 | 关闭可选阶段只禁止片段POST/模型调用，不禁止已经发生的正常详情GET；仅修注释。 |
-| N10 | 测试名只声明没有直接保存runtime属性和接口已捕获；不证明绑定方法不会间接持有runtime，不引入生命周期机制。 |
-| N11 | 汇总改为`check_slots/matched_slots/unmatched_slots`，声明全文与派生代表行检查重叠。11是未满足槽位数，不是独立缺陷数；另列`lyrics_exact_pages/lyrics_pages`。历史JSON旧字段保留为历史格式。 |
-| N12 | 来源测试改名到实际范围：简介事实在整页可见文本出现，人工选择说明存在、预期歌词非空。不新增机器定位框架，也不继续声称已经自动验证章节归属/歌词边界。 |
-| N13 | 工具校验本次声明集合与lock一致，而不是硬编码8；两者明确同步变更是新实验，不能套用旧报告。`--check`是三次整组方向性比较，没有预设最小幅度或统计显著性保证。 |
-| N14 | 新性能报告包含基准脚本、输入加载器、规则加载器、文本转换器和既有新旧解析器/规则/manifest的本地源码哈希；不依赖Git存在，也不冒充整个运行环境的递归依赖闭包。 |
-| N15 | 使用说明只要求项目环境解释器；删除作者本机可执行文件路径，版本信息留在实验报告。 |
-
-N7再分发权利及既有产品内容缺口不在这批工程修复中，未因此自动关闭。历史指纹/性能/内容报告不覆写为当前结果。
-
-验证记录见 [validation-n6-n15.json](results/validation-n6-n15.json)：相关bundle（world单元、world集成、packaging）在`-X utf8=0`实际`cp936`和`-X utf8=1`实际UTF-8下均615 passed；GBK全量单测1360 passed / 1 failed，唯一既有provider401，未改写或跳过。候选模式31个PR Python文件的实际选择集合一致，Ruff0.14.10退出0；该结果不认证未提交目标，固定模式确实拒绝当前源码漂移。最终提交后的独立干净Git检出验证另按精确SHA在PR/Issue记录。
-
-[新效果报告](results/effect-n6-n15.json)保留78槽旧58/新67满足的数值，但采用相关检查槽位名称，歌词全文匹配另列2/12与9/12；`effect_complete=false`，逐字段判定未变。[新性能报告](results/performance-n6-n15.json)记录扩展后的9文件指纹和本次8页声明集合，GBK模式三组方向性检查退出0，不增加页数或裕量约束。历史报告及独立内容预期未被覆盖。
-
-非作者独立复核的门禁22条真实临时仓库/真实Ruff检查覆盖错误head、本地删除/修补、index/config漂移、candidate身份、CRLF/cp936和无关gitlink缺失；限定范围未发现遗留高置信P1/P2。P3与编码修改亦经独立复核，明确没有把历史报告冒充新指纹证据。
+本次减法验证：标准Ruff0.14.10显式检查27个剩余PR变更Python文件通过；world单元、world集成及packaging在cp936/GBK和UTF-8两种模式下各546 passed。提示词默认离线成功；性能三组检查通过；内容报告生成成功，但`--check`因当前未满足槽位返回1，不能宣称产品效果全部通过。全量单测、真实站点及真实模型本次未重跑，原有内容缺口和权利问题未因此消失。
