@@ -48,7 +48,7 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 | spec ID | 交付契约 | 仓库证据入口（server相对） | 证据范围/边界 |
 | --- | --- | --- | --- |
 | VCP-01–04 | API身份/请求形状/挑战与失败 | `tests/unit/world/test_vcpedia_transport_contract.py` | Fake传输契约，不保证某个UA永远200/403 |
-| VCP-05 | 首框关联区间、字段优先级、嵌套归属 | `tests/unit/world/test_vcpedia_infobox_staff_scope.py` | 正/负边界与重复键，不再仅验证空白邻接 |
+| VCP-05 | 首框归集、字段优先级、有效页级容器 | `tests/unit/world/test_vcpedia_infobox_staff_scope.py` | 使用真实制作人员模板、有效角色参数；不把无效嵌套的特殊结果立为验收 |
 | VCP-06–07 | 展示项、独立简介/歌词、首候选、Ruby | `tests/unit/world/test_vcpedia_wikitext_equivalence.py`及解析定向回归 | 人工样例不是全站等价证明；新增用例绑定具体语义 |
 | VCP-08 | 真实结构内容质量 | `tests/support/vcpedia_corpus/README.md`及独立内容预期测试 | 按选定候选的内容比较，保留反向案例，非空率只辅助 |
 | VCP-09 | 原24首新旧比较 | 历史`0f9a758`关键词记录 | 待原输入/版本补证；不由新的精选语料代替 |
@@ -111,9 +111,9 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 
 线上更新完成后读回核对：标题、head、spec定位、验收表、数字、失败/未验证、依赖与关闭条件。#196未达到原9/11等条款时保持开放，并在重新请求审查时明示，不以新的通过数掩盖。
 
-## 六、本轮验证状态
+## 六、5b7b932 修复批次的验证记录
 
-结果绑定源码的LF规范化SHA256、manifest和实现/规则hash，见 [validation.json](results/validation.json)。原始计时样本见 [performance.json](results/performance.json)，内容项结果见 [effect.json](results/effect.json)。这些是一次受控运行记录，不自动随代码变动刷新；变更后须重跑。提交身份由包含这些文件的提交提供，避免报告嵌入自身提交哈希的循环。
+以下是该批次历史结果，不是后续测试输入清理的测试数量。后续记录见第七节。结果绑定源码的LF规范化SHA256、manifest和实现/规则hash，见 [validation.json](results/validation.json)。原始计时样本见 [performance.json](results/performance.json)，内容项结果见 [effect.json](results/effect.json)。这些是一次受控运行记录，不自动随代码变动刷新；变更后须重跑。提交身份由包含这些文件的提交提供，避免报告嵌入自身提交哈希的循环。
 
 | 验证 | 实际结果 | 范围 |
 | --- | --- | --- |
@@ -131,3 +131,18 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 非作者复核发现并关闭三类本轮问题：保护空值被first-wins锁住、实验原始响应的JSON转义凭据脱敏绕过、选材台账29/32保留标志矛盾。修复及新增回归均再次核对。首次干净导出脚本遗漏应用新增LF属性造成hash失败，导出步骤已修正；这次失败未计作产品通过，后续导出全套验证通过。
 
 仍未通过或未验证的验收：VCP-09原24首、VCP-11刹那芳华历史差异缺原同批输入；VCP-08尚有内容缺口；真实补提模型的本轮端到端质量未测试；VCP-19不访问生产库作全量重验；#196在这些证据与最终维护者验收闭合前保持开放。全量单测中的401是实际发生的外部请求失败，因此本轮不能笼统说“从未发出任何模型请求”，只能说“未取得新的真实补提成功证据”。
+
+## 七、2026-10-02 测试输入与契约清理
+
+本次根据站点模板定义核对合成测试，不改变产品解析代码、规则配置、真实冻结源码、内容oracle或历史参考算法。
+
+- 使用不存在的`创作者名单`模拟制作信息的用例，改为真实的 [VOCALOID Songbox Introduction，revision 6619](https://vcpedia.cn/index.php?title=Template:VOCALOID_Songbox_Introduction&oldid=6619)。该模板支持`groupN/listN`角色行和具名角色字段，两种有效写法均保留。重复角色用多组角色行，不用重复参数名冒充多行。
+- 普通 [VOCALOID Songbox，revision 539268](https://vcpedia.cn/index.php?title=Template:VOCALOID_Songbox&oldid=539268)不使用`简介/歌词`槽；有正文槽需求的解析和wheel样例改为 [VOCALOID Small Songbox，revision 451630](https://vcpedia.cn/index.php?title=Template:VOCALOID_Small_Songbox&oldid=451630)。普通框的制作角色移到staff，以真实的`演唱/UP主`验证首框值优先与补空。
+- 包装遍历使用 [Hide，revision 2184](https://vcpedia.cn/index.php?title=Template:Hide&oldid=2184) 的`内容`或 [Toggle，revision 109](https://vcpedia.cn/index.php?title=Template:Toggle&oldid=109) 的`content`，不再以`Hide|content`证明有效正文抽取。
+- 删除`test_nested_songboxes_do_not_end_first_box_interval_through_frames`及其6个参数化构造。该测试把无实际依据的“歌曲框参数内歌曲框必须不计数”固化成独立业务义务；不通过换个模板名继续保留这项特殊预期。
+- 保留页级多框、staff前后范围、字段合并优先级、可见空值、nowiki/LC、Ruby、歌词、表格和故意非法JSON/provider配置等真实契约或通用健壮性测试。通用count材料测试只是任意模板参数清洗，不宣称远程模板必须存在；其中的歌曲框示例也换成有效字段。
+- 不新增“参数内部 staff 必须排除”的测试或产品分支。VCP-05改为识别首框后通用遍历归集，不要求staff必须是页级兄弟节点；无效渲染构造不再额外产生排除或计数验收。
+
+这里的测试仍是人工构造输入，不冒充从站点冻结的真实页面。有效模板定义提供输入接口依据，字段合并预期由已确认业务策略决定。历史缺口和其他复审事项不因本次测试清理自动关闭。
+
+验证：lty环境Ruff0.14.10显式检查完整PR的31个Python文件，`--show-files`集合一致且退出0；六个直接修改的测试文件定向回归164 passed；`tests/unit/world`＋`tests/integration/world`＋`tests/integration/packaging`共573 passed，包含wheel真实导入解析。相对第六节579项减少6项，恰为移除的嵌套计数参数化用例；不是跳过失败测试，也没有修改产品去满足剩余输入。全量`tests/unit`、真实站点/模型和性能计时本次未重跑，第六节及其JSON仍是`5b7b932`批次历史证据，不自动升级为新结果。

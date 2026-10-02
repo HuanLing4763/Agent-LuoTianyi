@@ -31,7 +31,7 @@ def test_prose_without_sentence_punctuation_drops_everything_it_carries():
 
 
 def test_parameter_value_keeps_its_other_clauses():
-    material = material_text(f"{{{{Songbox|简介=发布信息，播放{COUNT}，2024年投稿}}}}")
+    material = material_text(f"{{{{VOCALOID Small Songbox|简介=发布信息，播放{COUNT}，2024年投稿}}}}")
 
     assert "bilibiliCount" not in material
     assert "发布信息" in material
@@ -39,10 +39,10 @@ def test_parameter_value_keeps_its_other_clauses():
 
 
 def test_parameter_value_disappears_when_nothing_but_counts_remains():
-    material = material_text(f"{{{{Songbox|数据={COUNT}，{COUNT}}}}}")
+    material = material_text(f"{{{{VOCALOID_Songbox|其他资料={COUNT}，{COUNT}}}}}")
 
     assert "bilibiliCount" not in material
-    assert "数据" not in material
+    assert "其他资料" not in material
 
 
 def test_non_count_templates_are_kept():

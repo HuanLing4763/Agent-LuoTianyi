@@ -29,7 +29,7 @@ def test_information_fields_keep_content_and_missing_status(field, value, expect
 
 
 def test_count_field_processing_does_not_mutate_other_extraction_views():
-    source = """{{VOCALOID_Songbox
+    source = """{{VOCALOID Small Songbox
 |其他资料=播放{{BiliCount|1}}，已重投
 |再生=固定文字
 |简介=开头。播放{{BiliCount|1}}次。结尾。

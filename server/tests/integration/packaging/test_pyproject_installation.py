@@ -51,10 +51,7 @@ def test_wheel_contains_regular_and_namespace_packages(tmp_path: Path) -> None:
         "src/world/learn_sing_songs/task.py",
         "src/world/types/task_result.py",
     } <= members
-    assert not any(
-        member.startswith(("src/chat_session/", "src/subconscious/", "src/legacy/"))
-        for member in members
-    )
+    assert not any(member.startswith(("src/chat_session/", "src/subconscious/", "src/legacy/")) for member in members)
     _assert_wheel_rules_import_and_parse(wheels[0], tmp_path)
 
 
@@ -67,7 +64,7 @@ def _assert_wheel_rules_import_and_parse(wheel_path: Path, tmp_path: Path) -> No
     cwd = tmp_path / "unrelated-cwd"
     cwd.mkdir()
     dependencies = sorted({sysconfig.get_path("purelib"), sysconfig.get_path("platlib")})
-    script = r'''
+    script = r"""
 import json
 import sys
 from pathlib import Path
@@ -92,14 +89,14 @@ for name, module in tuple(sys.modules.items()):
 rules_path = template_rules._rules_path()
 assert rules_path == root / "src/world/get_new_songs/vcpedia_templates.json"
 assert not (root / "config/vcpedia_templates.json").exists()
-source_text = "{{VOCALOID_Songbox|演唱=洛天依|简介=简介正文|歌词=最小歌词}}"
+source_text = "{{VOCALOID Small Songbox|演唱=洛天依|简介=简介正文|歌词=最小歌词}}"
 data = wikitext_parser.parse_details(source_text, "wheel sample")
 assert data["infobox"] == {"演唱": "洛天依"}, data
 assert data["summary"] == ["简介正文"], data
 assert data["lyrics"] == "最小歌词", data
 assert data["type"] == "Song", data
 print("WHEEL_IMPORT_PARSE_OK")
-'''
+"""
     result = subprocess.run(
         [sys.executable, "-I", "-S", "-c", script, str(installed), json.dumps(dependencies), str(SERVER_ROOT)],
         cwd=cwd,

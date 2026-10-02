@@ -55,8 +55,9 @@ def test_collect_materials_merges_fragments_when_enabled():
     post, calls = fake_post({"parse": {"text": {"*": "<p>站点渲染的简介内容</p>"}}})
     data = {"summary": []}
 
-    materials = collect_materials(data, needed_summary(), EMBED_SOURCE,
-                                  "https://vcpedia.cn", "某歌", post=post, merge_fragments=True)
+    materials = collect_materials(
+        data, needed_summary(), EMBED_SOURCE, "https://vcpedia.cn", "某歌", post=post, merge_fragments=True
+    )
 
     assert data["summary"] == ["站点渲染的简介内容"]
     assert len(calls) == 1
@@ -67,8 +68,9 @@ def test_collect_materials_skips_fragments_when_disabled():
     post, calls = fake_post({"parse": {"text": {"*": "<p>不应被请求</p>"}}})
     data = {"summary": []}
 
-    materials = collect_materials(data, needed_summary(), EMBED_SOURCE,
-                                  "https://vcpedia.cn", "某歌", post=post, merge_fragments=False)
+    materials = collect_materials(
+        data, needed_summary(), EMBED_SOURCE, "https://vcpedia.cn", "某歌", post=post, merge_fragments=False
+    )
 
     assert calls == []
     assert data["summary"] == []
@@ -78,8 +80,14 @@ def test_collect_materials_skips_fragments_when_disabled():
 def test_collect_materials_does_nothing_without_needs():
     post, calls = fake_post({"parse": {"text": {"*": "<p>x</p>"}}})
 
-    materials = collect_materials({"summary": []}, {"infobox": [], "summary": False, "lyrics": False},
-                                  EMBED_SOURCE, "https://vcpedia.cn", "某歌", post=post)
+    materials = collect_materials(
+        {"summary": []},
+        {"infobox": [], "summary": False, "lyrics": False},
+        EMBED_SOURCE,
+        "https://vcpedia.cn",
+        "某歌",
+        post=post,
+    )
 
     assert materials == {}
     assert calls == []
@@ -88,17 +96,19 @@ def test_collect_materials_does_nothing_without_needs():
 def test_fetcher_gates_fragment_merge_by_config(monkeypatch, tmp_path):
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: "== 简介 ==\n正文")
     seen = []
-    monkeypatch.setattr(fetcher_module, "collect_materials",
-                        lambda *a, **k: seen.append(k.get("merge_fragments")) or {})
+    monkeypatch.setattr(
+        fetcher_module, "collect_materials", lambda *a, **k: seen.append(k.get("merge_fragments")) or {}
+    )
 
     fetcher = fetcher_module.VCPediaFetcher(
-        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache"),
-         "merge_rendered_fragments": False})
+        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache"), "merge_rendered_fragments": False}
+    )
     fetcher.fetch_entity_description("某歌")
     assert seen == [], "片段合并与补提模型全关时，不得进入 collect_materials"
 
     fetcher_default = fetcher_module.VCPediaFetcher(
-        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache2")})
+        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache2")}
+    )
     fetcher_default.fetch_entity_description("某歌")
     assert seen == [True], "默认配置保持片段合并打开"
 
@@ -110,8 +120,8 @@ def test_fetcher_extract_missing_merges_model_answer(monkeypatch, tmp_path):
     )
 
     fetcher = fetcher_module.VCPediaFetcher(
-        {"activated": True, "use_llm": True, "data_dir": str(tmp_path / "cache")},
-        extraction_llm_module=fake)
+        {"activated": True, "use_llm": True, "data_dir": str(tmp_path / "cache")}, extraction_llm_module=fake
+    )
     data = fetcher.fetch_entity_description("某歌")
 
     assert len(fake.calls) == 1
@@ -126,8 +136,8 @@ def test_fetcher_extract_missing_survives_bad_model_answer(monkeypatch, tmp_path
     )
 
     fetcher = fetcher_module.VCPediaFetcher(
-        {"activated": True, "use_llm": True, "data_dir": str(tmp_path / "cache")},
-        extraction_llm_module=fake)
+        {"activated": True, "use_llm": True, "data_dir": str(tmp_path / "cache")}, extraction_llm_module=fake
+    )
     data = fetcher.fetch_entity_description("某歌")
 
     # 页面标题下无正文，基抽取产出 [""]；非法模型答案不得替换或合并进结果。
@@ -141,8 +151,8 @@ def test_fetcher_without_llm_never_calls_model(monkeypatch, tmp_path):
     )
 
     fetcher = fetcher_module.VCPediaFetcher(
-        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache")},
-        extraction_llm_module=fake)
+        {"activated": True, "use_llm": False, "data_dir": str(tmp_path / "cache")}, extraction_llm_module=fake
+    )
     fetcher.fetch_entity_description("某歌")
 
     assert fake.calls == [], "use_llm 关闭时不得调用补提模型"
@@ -177,9 +187,16 @@ def test_public_fetch_flow_orders_independent_stages(monkeypatch, tmp_path, merg
     extractor = RecordingModel("extract", events, '{"summary":["补提简介"],"lyrics":"补提歌词"}')
     summarizer = RecordingModel("summary", events, "最终短介绍")
     config = {"activated": True, "data_dir": str(tmp_path / "cache")}
-    config.update({key: value for key, value in (
-        ("merge_rendered_fragments", merge_fragments), ("use_llm", use_llm),
-    ) if value is not None})
+    config.update(
+        {
+            key: value
+            for key, value in (
+                ("merge_rendered_fragments", merge_fragments),
+                ("use_llm", use_llm),
+            )
+            if value is not None
+        }
+    )
     fetcher = VCPediaFetcher(config, llm_module=summarizer, extraction_llm_module=extractor)
     monkeypatch.setattr(fetcher.session, "post", post)
 
@@ -222,10 +239,18 @@ def test_missing_extractor_does_not_borrow_summary_model(monkeypatch, tmp_path):
     assert data["short_summary"] == "仅供总结"
 
 
-@pytest.mark.parametrize("answer", [
-    "不是JSON", "[]", "x" * 24001, RuntimeError("model failed"),
-    '{"lyrics":NaN}', {"lyrics": float("inf")}, {"lyrics": "字" * 24000},
-])
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "不是JSON",
+        "[]",
+        "x" * 24001,
+        RuntimeError("model failed"),
+        '{"lyrics":NaN}',
+        {"lyrics": float("inf")},
+        {"lyrics": "字" * 24000},
+    ],
+)
 def test_failed_extraction_still_runs_summary(monkeypatch, tmp_path, answer):
     source = "{{VOCALOID_Songbox|演唱=洛天依}}\n== 简介 ==\n== 歌词 ==\n<poem>完整歌词</poem>"
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: source)
@@ -234,7 +259,8 @@ def test_failed_extraction_still_runs_summary(monkeypatch, tmp_path, answer):
     summarizer = RecordingModel("summary", events, "失败后仍总结")
     fetcher = VCPediaFetcher(
         {"activated": True, "merge_rendered_fragments": False, "data_dir": str(tmp_path / "cache")},
-        llm_module=summarizer, extraction_llm_module=extractor,
+        llm_module=summarizer,
+        extraction_llm_module=extractor,
     )
 
     data = fetcher.fetch_entity_description("某歌")
@@ -246,7 +272,7 @@ def test_failed_extraction_still_runs_summary(monkeypatch, tmp_path, answer):
 
 
 def test_nonempty_partial_lyrics_are_supplemented_when_gap_remains(monkeypatch, tmp_path):
-    source = "{{VOCALOID_Songbox|简介=完整简介|歌词=已有歌词{{未知模板|1=遗漏歌词}}}}"
+    source = "{{VOCALOID Small Songbox|简介=完整简介|歌词=已有歌词{{未知模板|1=遗漏歌词}}}}"
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: source)
     extractor = FakeExtractionModule('{"lyrics":"已有歌词及遗漏歌词"}')
     fetcher = VCPediaFetcher(
@@ -285,13 +311,22 @@ def test_shared_response_validation_keeps_str_dict_and_raw_size_contract():
 @pytest.mark.parametrize("value", ["<nowiki></nowiki>", "-{}-", " \t ", "<nowiki> \t </nowiki>", "-{ \t }-"])
 @pytest.mark.parametrize("placement", ["songbox", "same_staff", "later_staff"])
 def test_fetcher_uses_visible_empty_staff_values_and_does_not_request_filled_fields(
-    monkeypatch, tmp_path, value, placement,
+    monkeypatch,
+    tmp_path,
+    value,
+    placement,
 ):
-    base = "{{VOCALOID_Songbox|简介=固定简介|歌词=完整歌词"
+    base = "{{VOCALOID Small Songbox|简介=固定简介|歌词=完整歌词"
     source = {
-        "songbox": base + "|演唱=" + value + "}}{{创作者名单|演唱=关联歌手}}",
-        "same_staff": base + "}}{{创作者名单|演唱=" + value + "|演唱=关联歌手}}",
-        "later_staff": base + "}}{{创作者名单|演唱=" + value + "}}{{创作者名单|演唱=关联歌手}}",
+        "songbox": base + "|演唱=" + value + "}}{{VOCALOID Songbox Introduction|演唱=关联歌手}}",
+        "same_staff": base
+        + "}}{{VOCALOID Songbox Introduction|group1=演唱|list1="
+        + value
+        + "|group2=演唱|list2=关联歌手}}",
+        "later_staff": base
+        + "}}{{VOCALOID Songbox Introduction|演唱="
+        + value
+        + "}}{{VOCALOID Songbox Introduction|演唱=关联歌手}}",
     }[placement]
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: source)
     extractor = FakeExtractionModule("{}")
@@ -310,7 +345,7 @@ def test_fetcher_uses_visible_empty_staff_values_and_does_not_request_filled_fie
 
 @pytest.mark.parametrize("value", ["<nowiki></nowiki>", "-{}-", "<nowiki> \t </nowiki>", "-{ \t }-"])
 def test_fetcher_requests_visible_empty_field_if_no_staff_fills_it(monkeypatch, tmp_path, value):
-    source = "{{VOCALOID_Songbox|简介=固定简介|歌词=完整歌词|演唱=" + value + "}}"
+    source = "{{VOCALOID Small Songbox|简介=固定简介|歌词=完整歌词|演唱=" + value + "}}"
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: source)
     extractor = FakeExtractionModule('{"infobox":{"演唱":"补提歌手"}}')
     fetcher = VCPediaFetcher(
@@ -327,17 +362,25 @@ def test_fetcher_requests_visible_empty_field_if_no_staff_fills_it(monkeypatch, 
 @pytest.mark.parametrize(
     "value,expected",
     [
-        ("<nowiki>臺灣</nowiki>", "臺灣"), ("-{臺灣}-", "臺灣"),
-        ("<nowiki>-{}-</nowiki>", "-{}-"), ("<nowiki>{{未知模板}}</nowiki>", "{{未知模板}}"),
+        ("<nowiki>臺灣</nowiki>", "臺灣"),
+        ("-{臺灣}-", "臺灣"),
+        ("<nowiki>-{}-</nowiki>", "-{}-"),
+        ("<nowiki>{{未知模板}}</nowiki>", "{{未知模板}}"),
     ],
 )
 @pytest.mark.parametrize("placement", ["songbox", "same_staff", "later_staff"])
 def test_fetcher_keeps_nonempty_protected_first_values(monkeypatch, tmp_path, value, expected, placement):
-    base = "{{VOCALOID_Songbox|简介=固定简介|歌词=完整歌词"
+    base = "{{VOCALOID Small Songbox|简介=固定简介|歌词=完整歌词"
     source = {
-        "songbox": base + "|演唱=" + value + "}}{{创作者名单|演唱=后歌手}}",
-        "same_staff": base + "}}{{创作者名单|演唱=" + value + "|演唱=后歌手}}",
-        "later_staff": base + "}}{{创作者名单|演唱=" + value + "}}{{创作者名单|演唱=后歌手}}",
+        "songbox": base + "|演唱=" + value + "}}{{VOCALOID Songbox Introduction|演唱=后歌手}}",
+        "same_staff": base
+        + "}}{{VOCALOID Songbox Introduction|group1=演唱|list1="
+        + value
+        + "|group2=演唱|list2=后歌手}}",
+        "later_staff": base
+        + "}}{{VOCALOID Songbox Introduction|演唱="
+        + value
+        + "}}{{VOCALOID Songbox Introduction|演唱=后歌手}}",
     }[placement]
     monkeypatch.setattr(fetcher_module, "fetch_wikitext", lambda *a, **k: source)
     extractor = FakeExtractionModule("{}")
@@ -355,7 +398,7 @@ def test_fetcher_keeps_nonempty_protected_first_values(monkeypatch, tmp_path, va
 @pytest.mark.parametrize("constant", ["NaN", "Infinity", "-Infinity", "1e10000"])
 def test_shared_response_validation_rejects_nonfinite_json_numbers(constant):
     with pytest.raises(ValueError):
-        decode_extraction_response('{"nested":{"values":[' + constant + ']}}')
+        decode_extraction_response('{"nested":{"values":[' + constant + "]}}")
 
 
 @pytest.mark.parametrize("number", [float("nan"), float("inf"), float("-inf")])

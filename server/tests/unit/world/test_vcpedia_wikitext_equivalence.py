@@ -24,7 +24,7 @@ DIVERGENCES = [
         "无变化：单列信息框与首段简介沿用原选择。",
     ),
     (
-        "== 简介 ==\n正文。\n{{创作者名单|group1=PV|list1=作者}}\n=== 背景 ===\n不可追加\n"
+        "== 简介 ==\n正文。\n{{VOCALOID Songbox Introduction|group1=PV|list1=作者}}\n=== 背景 ===\n不可追加\n"
         "== 歌词 ==\n<poem>散文<span>第一句歌词</span><span>第二句歌词（副歌）</span>尾声</poem>\n"
         "<poem>第二版本</poem>",
         "<h2>简介</h2><p>正文。</p><div><table><tr><td>PV</td><td>作者</td></tr></table></div>"
@@ -32,11 +32,16 @@ DIVERGENCES = [
         '<div class="poem"><p>散文<span>第一句歌词</span><span>第二句歌词（副歌）</span>尾声</p></div>'
         '<div class="poem"><p>第二版本</p></div>',
         {
-            "type": "Song", "infobox": {"PV": "作者"}, "summary": ["正文。"],
-            "lyrics": "第一句歌词 第二句歌词", "spaced_lyrics": "第一句歌词 第二句歌词",
+            "type": "Song",
+            "infobox": {"PV": "作者"},
+            "summary": ["正文。"],
+            "lyrics": "第一句歌词 第二句歌词",
+            "spaced_lyrics": "第一句歌词 第二句歌词",
         },
         {
-            "type": "Song", "infobox": {}, "summary": ["正文。\n不可追加"],
+            "type": "Song",
+            "infobox": {},
+            "summary": ["正文。\n不可追加"],
             "lyrics": "散文第一句歌词\n第二句歌词（副歌）\n尾声",
             "spaced_lyrics": "散文第一句歌词\n第二句歌词（副歌）\n尾声",
         },
@@ -50,12 +55,18 @@ DIVERGENCES = [
         "<h2>歌词</h2><p>普通正文并非poem</p>"
         '<div class="poem"><p>甲（副歌）<br/>乙</p></div>',
         {
-            "type": "Song", "infobox": {}, "summary": ["开头。。结尾。"],
-            "lyrics": "甲乙", "spaced_lyrics": "甲乙",
+            "type": "Song",
+            "infobox": {},
+            "summary": ["开头。。结尾。"],
+            "lyrics": "甲乙",
+            "spaced_lyrics": "甲乙",
         },
         {
-            "type": "Song", "infobox": {}, "summary": ["开头。截至现在有123次播放，45次收藏。结尾。"],
-            "lyrics": "甲（副歌）\n乙", "spaced_lyrics": "甲（副歌）\n乙",
+            "type": "Song",
+            "infobox": {},
+            "summary": ["开头。截至现在有123次播放，45次收藏。结尾。"],
+            "lyrics": "甲（副歌）\n乙",
+            "spaced_lyrics": "甲（副歌）\n乙",
         },
         "简介不再按固定词删除统计句（统计句改由计数政策处理）；歌词保留括号，br 转为换行。",
     ),
@@ -71,8 +82,11 @@ DIVERGENCES = [
         '<h2>歌词</h2><div class="poem"><p>旧版</p></div>'
         '<h2>新版歌词</h2><div class="poem"><p>新版一\n新版二</p></div>',
         {
-            "type": "Song", "infobox": {}, "summary": [""],
-            "lyrics": "新版一 新版二", "spaced_lyrics": "新版一 新版二",
+            "type": "Song",
+            "infobox": {},
+            "summary": [""],
+            "lyrics": "新版一 新版二",
+            "spaced_lyrics": "新版一 新版二",
         },
         {"type": "Song", "infobox": {}, "summary": [""], "lyrics": "旧版", "spaced_lyrics": "旧版"},
         "取源码顺序的首个歌词候选，不再按标题名挑版本。",
