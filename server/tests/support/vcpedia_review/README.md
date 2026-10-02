@@ -50,7 +50,7 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 | VCP-01–04 | API身份/请求形状/挑战与失败 | `tests/unit/world/test_vcpedia_transport_contract.py` | Fake传输契约，不保证某个UA永远200/403 |
 | VCP-05 | 首框归集、字段优先级、有效页级容器 | `tests/unit/world/test_vcpedia_infobox_staff_scope.py` | 使用真实制作人员模板、有效角色参数；不把无效嵌套的特殊结果立为验收 |
 | VCP-06–07 | 展示项、独立简介/歌词、首候选、Ruby | `tests/unit/world/test_vcpedia_wikitext_equivalence.py`及解析定向回归 | 人工样例不是全站等价证明；新增用例绑定具体语义 |
-| VCP-08 | 真实结构内容质量 | `tests/support/vcpedia_corpus/README.md`及独立内容预期测试 | 按选定候选的内容比较，保留反向案例，非空率只辅助 |
+| VCP-08 | 真实结构内容质量 | `tests/support/vcpedia_corpus/README.md`及内容预期测试 | 预期依据人工选块；自动来源测试仅整页出现性，不证明章节归属；相关布尔槽位分列，不当独立准确率 |
 | VCP-09 | 原24首新旧比较 | 历史`0f9a758`关键词记录 | 待原输入/版本补证；不由新的精选语料代替 |
 | VCP-10 | 两首当前歌词/关键词可用 | `tests/unit/world/test_vcpedia_lyrics_recovery.py`、`tests/support/vcpedia_lyrics_recovery.json` | 不加载旧HTML，不单独证明“迁移前为空” |
 | VCP-11 | 刹那芳华64→723 | 原PR/历史基线人工记录 | 本轮未重新取得同批输入，历史观察待补证 |
@@ -61,9 +61,9 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 | VCP-19 | 存量不迁移、World仅投递 | `tests/integration/world`、`test_world_task_vcpedia_new_songs.py` | 不访问生产库；历史3320首全量数据未重新核验 |
 | VCP-20–21 | count清理、保护与转换顺序 | `tests/unit/world/test_vcpedia_material_counts.py`及资料字段内容回归 | 同时测材料与最终字段，不能仅数infobox条目 |
 | VCP-22 | 提示词实验安全默认与契约 | `scripts/vcpedia_prompt_lab.py`及离线CLI测试 | 默认不联网，实验不启用片段POST，不等同完整生产链 |
-| VCP-23 | 离线效果/成本与真实旧算法 | `scripts/vcpedia_perf_baseline.py`及工具测试 | 固定集合，统计准确，真实计时在受控任务单列 |
+| VCP-23 | 离线效果/成本与真实旧算法 | `scripts/vcpedia_perf_baseline.py`及工具测试 | 声明集合与lock一致，不硬编码页数；真实计时单列，不承诺显著性或最小裕量 |
 | VCP-24 | 活动统计/配对/去重/独立预期 | `scripts/vcpedia_freeze_corpus.py`及语料工具测试 | 完整官方30天名单；不自行统计recentchanges |
-| VCP-25 | 全变更文件项目lint | `scripts/check_pr_python.py`及门禁测试 | 显式文件与实际集合一致，不能只依赖目录返回0 |
+| VCP-25 | 全变更文件项目lint与目标身份 | `scripts/check_pr_python.py`及门禁测试 | 显式文件与实际集合一致；固定提交与候选工作区区分，不能用本地删除/修补认证目标提交 |
 | VCP-26 | 本文件、inventory和Issue双向核验 | 本文件及`document_inventory.json` | 每项承接或标待验；删除文档不删除承诺 |
 
 ## 四、撤回或限定的历史声明
@@ -118,15 +118,15 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 | 验证 | 实际结果 | 范围 |
 | --- | --- | --- |
 | 锁定Ruff0.14.10 | 31个Python文件，实际`--show-files`集合一致，退出0 | merge-base至原head＋本轮工作区全部新增/修改Python |
-| 干净导出相关测试 | 579 passed，退出0 | `tests/unit/world`、`tests/integration/world`、`tests/integration/packaging` |
+| 干净导出相关测试 | 579 passed，退出0 | `tests/unit/world`、`tests/integration/world`、`tests/integration/packaging`；当时继承`PYTHONUTF8=1`，未验证默认GBK |
 | 全量单测 | 1324 passed / 1 failed，退出1 | 唯一失败为既有`test_llm_service.py::TestLLMService::test_register_llm_module`真实请求401；未修改或跳过以刷绿 |
 | wheel | 相关测试中通过 | 构建后隔离`-I -S`子进程真实导入规则并解析，核对模块来自wheel而非源码 |
 | `compileall src` | 退出0 | 干净导出树 |
 | 离线重组/效果/性能/提示词示例 | 均退出0 | 初始没有`.git`、作者`server/data`和密钥文件；工具输出使用外部临时目录 |
 
-效果`--check`退出0只表示与独立预期的已审命中/缺口分布一致，不表示全部正确。精选12页78个内容检查项旧58命中、新67命中，**新仍有11缺口，`effect_complete=false`**；归一化歌词精确一致旧2/12、新9/12。保留Foxy、Sharing、社畜和部分简介事实的已知问题，未把旧有失败解释成本轮新回归，也未把它们删出语料。
+效果`--check`退出0只表示与已审布尔结果一致，不表示全部正确。历史精选12页有78个布尔检查槽位，旧58项满足、新67项满足，**新仍有11个未满足槽位，`effect_complete=false`**。全文匹配和其派生代表行检查有重叠，槽位不是统计独立的正确率分母，11也不是独立缺陷数；归一化歌词全文匹配另单列旧2/12、新9/12。预期独立于生产解析器生成，与检查槽位互相独立是两回事。保留Foxy、Sharing、社畜和部分简介事实的问题，未把旧有失败解释成本轮新回归，也未删出语料。
 
-性能固定8页，每页2次预热＋9轮，三组均满足新侧medians总和小于旧侧。原始报告中的整组比为约5.869 / 4.898 / 5.429，配对比中位数约7.208 / 6.974 / 7.382；冻结输入字节比中位数约30.475。仅为此环境的离线解析，不是网络/模型/生产吞吐速度，也不沿用旧26.7口径。
+该次性能配置选择8页，每页2次预热＋9轮，三组均满足新侧medians总和小于旧侧；8是实验样本规模，不是工具硬编码的永久约束，也没有预设最小改善幅度。原始报告中的整组比为约5.869 / 4.898 / 5.429，配对比中位数约7.208 / 6.974 / 7.382；冻结输入字节比中位数约30.475。仅为此环境的离线解析，不是网络/模型/生产吞吐速度，也不沿用旧26.7口径。
 
 非作者复核发现并关闭三类本轮问题：保护空值被first-wins锁住、实验原始响应的JSON转义凭据脱敏绕过、选材台账29/32保留标志矛盾。修复及新增回归均再次核对。首次干净导出脚本遗漏应用新增LF属性造成hash失败，导出步骤已修正；这次失败未计作产品通过，后续导出全套验证通过。
 
@@ -145,4 +145,28 @@ Issue #196引用同一组稳定ID。表中“验收方式”不是已经通过�
 
 这里的测试仍是人工构造输入，不冒充从站点冻结的真实页面。有效模板定义提供输入接口依据，字段合并预期由已确认业务策略决定。历史缺口和其他复审事项不因本次测试清理自动关闭。
 
-验证：lty环境Ruff0.14.10显式检查完整PR的31个Python文件，`--show-files`集合一致且退出0；六个直接修改的测试文件定向回归164 passed；`tests/unit/world`＋`tests/integration/world`＋`tests/integration/packaging`共573 passed，包含wheel真实导入解析。相对第六节579项减少6项，恰为移除的嵌套计数参数化用例；不是跳过失败测试，也没有修改产品去满足剩余输入。全量`tests/unit`、真实站点/模型和性能计时本次未重跑，第六节及其JSON仍是`5b7b932`批次历史证据，不自动升级为新结果。
+历史验证：lty环境Ruff0.14.10显式检查完整PR的31个Python文件，`--show-files`集合一致且退出0；六个直接修改的测试文件定向回归164 passed；`tests/unit/world`＋`tests/integration/world`＋`tests/integration/packaging`共573 passed，包含wheel真实导入解析。该次继承`PYTHONUTF8=1`，不是默认GBK兼容性的验证。相对第六节579项减少6项，恰为移除的嵌套计数参数化用例；不是跳过失败测试，也没有修改产品去满足剩余输入。全量`tests/unit`、真实站点/模型和性能计时本次未重跑，第六节及其JSON仍是`5b7b932`批次历史证据，不自动升级为新结果。
+
+## 八、N6 / N8–N15：编码、验收身份与证据口径
+
+本次不改歌曲解析、补提决策、规则配置、实际样本集合或人工内容预期，不因审查意见新增“必须8页”或最低性能裕量。
+
+| 项 | 修改与边界 |
+| --- | --- |
+| N6 | 两处测试读取UTF-8 JSON显式指定编码；性能失败报告用中文内容覆盖同类隐患。此前仅UTF-8模式通过的结论补记环境限制，修后分别用`-X utf8=0`与`-X utf8=1`并记录实际文件默认编码。 |
+| N8 | 固定提交验收要求当前HEAD等于目标head，相关Python源码、门禁脚本与Ruff配置不偏离；不能以本地删除/修补跳过目标提交的错误。显式工作区检查允许候选变更但输出不是提交认证。 |
+| N9 | 关闭可选阶段只禁止片段POST/模型调用，不禁止已经发生的正常详情GET；仅修注释。 |
+| N10 | 测试名只声明没有直接保存runtime属性和接口已捕获；不证明绑定方法不会间接持有runtime，不引入生命周期机制。 |
+| N11 | 汇总改为`check_slots/matched_slots/unmatched_slots`，声明全文与派生代表行检查重叠。11是未满足槽位数，不是独立缺陷数；另列`lyrics_exact_pages/lyrics_pages`。历史JSON旧字段保留为历史格式。 |
+| N12 | 来源测试改名到实际范围：简介事实在整页可见文本出现，人工选择说明存在、预期歌词非空。不新增机器定位框架，也不继续声称已经自动验证章节归属/歌词边界。 |
+| N13 | 工具校验本次声明集合与lock一致，而不是硬编码8；两者明确同步变更是新实验，不能套用旧报告。`--check`是三次整组方向性比较，没有预设最小幅度或统计显著性保证。 |
+| N14 | 新性能报告包含基准脚本、输入加载器、规则加载器、文本转换器和既有新旧解析器/规则/manifest的本地源码哈希；不依赖Git存在，也不冒充整个运行环境的递归依赖闭包。 |
+| N15 | 使用说明只要求项目环境解释器；删除作者本机可执行文件路径，版本信息留在实验报告。 |
+
+N7再分发权利及既有产品内容缺口不在这批工程修复中，未因此自动关闭。历史指纹/性能/内容报告不覆写为当前结果。
+
+验证记录见 [validation-n6-n15.json](results/validation-n6-n15.json)：相关bundle（world单元、world集成、packaging）在`-X utf8=0`实际`cp936`和`-X utf8=1`实际UTF-8下均615 passed；GBK全量单测1360 passed / 1 failed，唯一既有provider401，未改写或跳过。候选模式31个PR Python文件的实际选择集合一致，Ruff0.14.10退出0；该结果不认证未提交目标，固定模式确实拒绝当前源码漂移。最终提交后的独立干净Git检出验证另按精确SHA在PR/Issue记录。
+
+[新效果报告](results/effect-n6-n15.json)保留78槽旧58/新67满足的数值，但采用相关检查槽位名称，歌词全文匹配另列2/12与9/12；`effect_complete=false`，逐字段判定未变。[新性能报告](results/performance-n6-n15.json)记录扩展后的9文件指纹和本次8页声明集合，GBK模式三组方向性检查退出0，不增加页数或裕量约束。历史报告及独立内容预期未被覆盖。
+
+非作者独立复核的门禁22条真实临时仓库/真实Ruff检查覆盖错误head、本地删除/修补、index/config漂移、candidate身份、CRLF/cp936和无关gitlink缺失；限定范围未发现遗留高置信P1/P2。P3与编码修改亦经独立复核，明确没有把历史报告冒充新指纹证据。

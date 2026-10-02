@@ -20,7 +20,9 @@ python -m pytest tests/integration/world tests/integration/packaging -q
 python scripts/check_pr_python.py --base 910af449680091e339e0e6fd517d08c1f5222923 --head HEAD --include-working-tree
 ```
 
-检查入口打印base/head、版本、文件数及实际选中文件。提交前包含工作区及待提交新增Python文件；复核固定提交时去掉`--include-working-tree`。不要用`ruff check tests/unit/world/`的退出0推断所有测试都被检查：项目`include`对目录发现生效，显式文件与目录行为不同。
+检查入口打印base/head、版本、模式、文件数及实际选中文件。提交前使用`--include-working-tree`检查候选工作区，包括待提交新增Python文件；结果不是提交认证。复核固定提交时去掉该选项，实际检出的HEAD必须等于目标head，所选Python源码、检查工具本身及根目录/server/所选路径祖先中的Ruff配置不得有暂存或未暂存偏离；目标提交中的应检文件被本地删除不能跳过后报通过。此范围不是全仓库强隔离，无关文档、数据及未初始化子模块不作为失败依据。不要用`ruff check tests/unit/world/`的退出0推断所有测试都被检查：项目`include`对目录发现生效，显式文件与目录行为不同。
+
+跨Windows编码验证时，分别使用`python -X utf8=0 -m pytest ...`和`python -X utf8=1 -m pytest ...`，同时记录`sys.flags.utf8_mode`与`locale.getpreferredencoding(False)`。前者只有实际编码为`cp936`/GBK时才能作为GBK证据；不要以终端输出编码代替文件默认编码，也不要用`PYTHONUTF8=1`掩盖未指定文件格式的读取。
 
 `test_vcpedia_lyrics_recovery.py`只验证两份已有源码的当前歌词与关键词，不运行旧HTML实现。`test_vcpedia_corpus_baseline.py`及配对工具的内容预期与行为快照用途分别说明；非空、字数、`needed`不是完整性判卷的替代品。原24首列表比较与刹那芳华64→723仍按历史证据单列，不由新的样本数量自动承接。
 

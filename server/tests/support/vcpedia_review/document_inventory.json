@@ -2214,5 +2214,25 @@
       ],
       "issue": "https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196"
     }
+  ],
+  "followup_n6_n15_evidence": [
+    {
+      "path": "server/tests/support/vcpedia_review/results/validation-n6-n15.json",
+      "contract_ids": ["VCP-23", "VCP-25", "VCP-26"],
+      "scope": "Explicit locale and gate-identity verification; not replacement of earlier raw reports",
+      "issue": "https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196"
+    },
+    {
+      "path": "server/tests/support/vcpedia_review/results/effect-n6-n15.json",
+      "contract_ids": ["VCP-08", "VCP-24"],
+      "scope": "Correlated boolean check slots; underlying reviewed outcomes unchanged",
+      "issue": "https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196"
+    },
+    {
+      "path": "server/tests/support/vcpedia_review/results/performance-n6-n15.json",
+      "contract_ids": ["VCP-23"],
+      "scope": "New run with local measurement/dependency fingerprints and declared sample set",
+      "issue": "https://github.com/SheepLiu712/Agent-LuoTianyi/issues/196"
+    }
   ]
 }
