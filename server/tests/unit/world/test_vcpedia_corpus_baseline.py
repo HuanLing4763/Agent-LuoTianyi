@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
-from support.vcpedia_corpus.oracle_support import compare, normalized
+from support.vcpedia_corpus import oracle_support
+from support.vcpedia_corpus.oracle_support import compare, counts, normalized, score
 from support.vcpedia_legacy_html import parse_html
 
 from scripts.vcpedia_freeze_corpus import load_manifest
@@ -84,7 +85,56 @@ def test_independent_content_outcomes_keep_known_gaps_visible():
     assert not actual["rows"]["山塘恋雨"]["new"]["summary_facts"]["5.2.1"]
 
 
-def test_oracle_summary_facts_and_lyric_boundaries_have_source_evidence():
+def test_selected_counts_are_boolean_slots_with_separate_lyrics_page_counts():
+    reviewed = json.loads((CORPUS / "reviewed_outcomes.json").read_text(encoding="utf-8"))["rows"]
+    selected = {title: reviewed[title] for title in MANIFEST["selected_titles"]}
+    assert counts(selected) == {
+        "old": {"check_slots": 78, "matched_slots": 58, "unmatched_slots": 20,
+                "lyrics_pages": 12, "lyrics_exact_pages": 2, "lyrics_nonexact_pages": 10},
+        "new": {"check_slots": 78, "matched_slots": 67, "unmatched_slots": 11,
+                "lyrics_pages": 12, "lyrics_exact_pages": 9, "lyrics_nonexact_pages": 3},
+    }
+
+
+@pytest.mark.parametrize(("lyrics", "exact", "representative"), [
+    ("first\nsecond\nmiddle\nfourth\nlast", True, True),
+    ("first\nmiddle\nlast", False, True),
+    ("", False, False),
+])
+def test_lyric_slots_preserve_correlated_exact_and_representative_diagnostics(lyrics, exact, representative):
+    expected = {"type": "Song", "lyrics": "first\nsecond\nmiddle\nfourth\nlast",
+                "infobox": {}, "summary_facts": []}
+    checks = score({"type": "Song", "lyrics": lyrics}, expected)
+    assert checks["lyrics_exact"] is exact
+    assert checks["lyrics_representative_order"] is representative
+    # One damaged lyric can fail both slots; the slots are not distinct defects.
+    totals = counts({"sample": {"old": checks, "new": checks}})["new"]
+    assert totals["check_slots"] == 3
+    assert totals["matched_slots"] == 1 + exact + representative
+    assert totals["unmatched_slots"] == (not exact) + (not representative)
+    assert totals["lyrics_pages"] == 1
+    assert totals["lyrics_exact_pages"] == int(exact)
+
+
+def test_normalization_only_converts_zh_cn_and_removes_whitespace():
+    assert normalized(" 歌詞\tＡa（合聲）!\n") == "歌词Ａa（合声）!"
+
+
+def test_content_cli_reports_slot_semantics_without_hiding_known_gaps(tmp_path, capsys):
+    output = tmp_path / "content.json"
+    assert oracle_support.main(["--manifest", str(CORPUS / "manifest.json"),
+                                "--output", str(output), "--check"]) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert json.loads(capsys.readouterr().out) == report["selected_counts"]
+    assert "not independent defects or accuracy" in report["counts_semantics"]
+    assert report["selected_counts"]["new"]["unmatched_slots"] == 11
+    assert report["effect_complete"] is False
+    assert report["unreviewed_change"] is False
+    assert report["extended_counts"] == counts(report["rows"])
+
+
+def test_oracle_facts_occur_in_page_text_and_review_descriptions_are_present():
+    """Check whole-page occurrences and nonempty descriptions/text, not section or lyric boundaries."""
     oracle = json.loads((CORPUS / "oracle.json").read_text(encoding="utf-8"))["pages"]
     for title, expected in oracle.items():
         source, html = PAIRS[title]
@@ -101,7 +151,9 @@ def test_archive_is_complete_and_selected_subsets_are_coverage_based():
     ledger = json.loads((CORPUS / "candidate-ledger.json").read_text(encoding="utf-8"))
     assert ledger["candidate_count"] == len(ledger["pages"]) == 31
     assert len(MANIFEST["selected_titles"]) == 12
-    assert len(MANIFEST["benchmark_titles"]) == 8
+    benchmark_titles = MANIFEST["benchmark_titles"]
+    assert benchmark_titles and len(benchmark_titles) == len(set(benchmark_titles))
+    assert set(benchmark_titles) <= {title for title, (_, html) in PAIRS.items() if html is not None}
     decisions = json.loads((CORPUS / "curation.json").read_text(encoding="utf-8"))["selection_decisions"]
     assert {d["title"] for d in decisions if d["retained_in_archive"]} == set(PAIRS)
     assert all(d["representative"] in PAIRS and d["reason"] for d in decisions)

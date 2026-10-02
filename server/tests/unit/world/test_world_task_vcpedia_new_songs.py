@@ -221,7 +221,8 @@ def test_vcpedia_run_once_returns_failure_on_exception(monkeypatch):
     assert "boom" in result.message
 
 
-def test_initialize_captures_narrow_dependencies_not_runtime():
+def test_initialize_captures_required_interfaces_without_runtime_attribute():
+    """只验证不直接保存 runtime 属性；绑定入口仍可能间接持有 runtime。"""
     runtime, stage, asked = server_runtime(character_id="other-character")
     task = VCPediaNewSongTask({"crawler": {"use_llm": False}})
     with pytest.raises(RuntimeError, match="initialize"):

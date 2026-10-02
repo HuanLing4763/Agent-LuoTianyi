@@ -9,6 +9,18 @@ import pytest
 
 from scripts import vcpedia_perf_baseline as perf
 
+CORPUS = Path(__file__).resolve().parents[2] / "support" / "vcpedia_corpus"
+IMPLEMENTATION_FILES = {
+    "benchmark_script": "scripts/vcpedia_perf_baseline.py",
+    "freeze_loader": "scripts/vcpedia_freeze_corpus.py",
+    "legacy_adapter": "tests/support/vcpedia_legacy_html.py",
+    "new_parser": "src/world/get_new_songs/wikitext_parser.py",
+    "template_rules": "src/world/get_new_songs/template_rules.py",
+    "text_conversion": "src/world/get_new_songs/text_conversion.py",
+    "config_rules": "config/vcpedia_templates.json",
+    "packaged_rules": "src/world/get_new_songs/vcpedia_templates.json",
+}
+
 
 def page(title):
     return {"title": title, "html": "html", "source": "wiki", "html_bytes": 120,
@@ -27,6 +39,27 @@ class FakeClock:
     def __call__(self):
         self.calls += 1
         return self.now
+
+
+def deterministic_benchmark(pages, *, old_s=4, new_s=2):
+    """Exercise report generation with fake parsers and a fake clock, never wall-clock timing."""
+    clock = FakeClock()
+
+    def parser(elapsed):
+        def parse(value, title):
+            clock.now += elapsed
+            return complete(title)
+        return parse
+
+    return perf.benchmark(pages, parsers={"old": parser(old_s), "new": parser(new_s)}, clock=clock)
+
+
+@pytest.mark.parametrize(("new_s", "faster"), [(1 - 2 ** -20, True), (1, False), (1 + 2 ** -20, False)])
+def test_new_faster_requires_strictly_lower_sum_without_minimum_margin(new_s, faster):
+    result = deterministic_benchmark([page("selected")], old_s=1, new_s=new_s)
+    assert result["sum_old_medians_s"] == 1
+    assert result["sum_new_medians_s"] == new_s
+    assert result["new_faster"] is faster
 
 
 def test_warmup_alternation_all_samples_and_paired_statistics():
@@ -89,8 +122,8 @@ def test_parser_failures_are_never_silently_skipped():
 
 
 def test_controlled_check_runs_three_whole_groups_and_writes_failure(tmp_path, monkeypatch):
-    monkeypatch.setattr(perf, "prepare", lambda _: [page("fixed")])
-    monkeypatch.setattr(perf, "environment", lambda _: {})
+    monkeypatch.setattr(perf, "prepare", lambda _: [page("selected")])
+    monkeypatch.setattr(perf, "environment", lambda _: {"probe": "中文报告"})
     called = []
 
     def run_group(pages):
@@ -100,20 +133,93 @@ def test_controlled_check_runs_three_whole_groups_and_writes_failure(tmp_path, m
     output = tmp_path / "performance.json"
     assert perf.run("unused", output, check=True, runner=run_group) == 1
     assert len(called) == 3
-    assert all(pages == [page("fixed")] for pages in called)
-    assert json.loads(output.read_text())["check_passed"] is False
+    assert all(pages == [page("selected")] for pages in called)
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["check_passed"] is False
+    assert report["probe"] == "中文报告"
 
 
-def test_fixed_group_cannot_silently_shrink(tmp_path):
-    corpus = Path(__file__).resolve().parents[2] / "support" / "vcpedia_corpus"
+def test_manifest_only_sample_change_fails_until_reviewed_lock_matches(tmp_path):
     source = tmp_path / "inputs"
-    shutil.copytree(corpus, source, ignore=shutil.ignore_patterns("results", "__pycache__"))
-    path = source / "manifest.json"
+    shutil.copytree(CORPUS, source, ignore=shutil.ignore_patterns("results", "__pycache__"))
+    path, lock_path = source / "manifest.json", source / "benchmark-lock.json"
     value = json.loads(path.read_text(encoding="utf-8"))
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    previous_sample_set = lock["sample_set"]
+    previous_hash = lock["sample_set_sha256"]
     value["benchmark_titles"].pop()
     path.write_text(json.dumps(value), encoding="utf-8")
-    with pytest.raises(ValueError, match="fixed sample lock"):
+    with pytest.raises(ValueError, match="declared benchmark sample set differs from reviewed sample lock"):
         perf.prepare(path)
+
+    # A synchronously reviewed replacement is valid; its results need a new fingerprint.
+    lock["sample_set"] = previous_sample_set[:-1]
+    lock["sample_set_sha256"] = perf.sha256(perf.json_bytes(lock["sample_set"]))
+    lock_path.write_bytes(perf.json_bytes(lock))
+    lock_evidence = next(record for record in value["evidence"] if record["path"] == "benchmark-lock.json")
+    lock_evidence["sha256"] = perf.sha256(lock_path.read_bytes())
+    path.write_bytes(perf.json_bytes(value))
+    pages = perf.prepare(path)
+    assert [item["title"] for item in pages] == value["benchmark_titles"]
+    output = tmp_path / "replacement-performance.json"
+    assert perf.run(path, output, runner=deterministic_benchmark) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    group = report["groups"][0]
+    assert group["sample_set"] == lock["sample_set"] != previous_sample_set
+    assert group["sample_set_sha256"] == lock["sample_set_sha256"] != previous_hash
+
+
+def test_environment_hashes_explicit_local_implementation_files():
+    path = CORPUS / "manifest.json"
+    expected = {name: perf.sha256((perf.SERVER / relative).read_bytes())
+                for name, relative in IMPLEMENTATION_FILES.items()}
+    expected["manifest"] = perf.sha256(path.read_bytes())
+    assert perf.environment(path)["implementation_sha256"] == expected
+
+
+@pytest.mark.parametrize("dependency", ["template_rules", "text_conversion"])
+def test_transitive_dependency_change_updates_hash_without_git(tmp_path, monkeypatch, dependency):
+    server = tmp_path / "exported-server"
+    for relative in IMPLEMENTATION_FILES.values():
+        target = server / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(perf.SERVER / relative, target)
+    path = server / "manifest.json"
+    shutil.copyfile(CORPUS / "manifest.json", path)
+    monkeypatch.setattr(perf, "SERVER", server)
+    assert not (server / ".git").exists()
+    before = perf.environment(path)["implementation_sha256"]
+    changed = server / IMPLEMENTATION_FILES[dependency]
+    changed.write_bytes(changed.read_bytes() + b"\n# changed dependency\n")
+    after = perf.environment(path)["implementation_sha256"]
+    assert {name for name in before if before[name] != after[name]} == {dependency}
+    assert after[dependency] == perf.sha256(changed.read_bytes())
+
+
+def test_environment_hashes_are_recorded_before_runner(tmp_path, monkeypatch):
+    events = []
+    original_environment = perf.environment
+
+    def prepare(_):
+        events.append("prepare")
+        return [page("selected")]
+
+    def environment(path):
+        events.append("environment")
+        return original_environment(path)
+
+    def runner(pages):
+        assert events == ["prepare", "environment"]
+        events.append("runner")
+        return deterministic_benchmark(pages)
+
+    monkeypatch.setattr(perf, "prepare", prepare)
+    monkeypatch.setattr(perf, "environment", environment)
+    output = tmp_path / "performance.json"
+    assert perf.run(CORPUS / "manifest.json", output, runner=runner) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert events == ["prepare", "environment", "runner"]
+    assert report["implementation_sha256"] == original_environment(CORPUS / "manifest.json")["implementation_sha256"]
 
 
 def test_cli_missing_manifest_returns_real_failure_code(tmp_path):

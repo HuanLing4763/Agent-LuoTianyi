@@ -1,8 +1,10 @@
 """Paired offline parsing only: full historical HTML extraction versus parse_details.
 
 Reads, hashes, imports and initialization are outside timing. This measures neither
-network transfer nor LLM latency. --check performs three complete controlled groups;
-wall-clock checks are deliberately not part of ordinary CI.
+network transfer nor LLM latency. --check performs three complete controlled groups
+of the selected reviewed sample set, each requiring new sum of medians < old.
+There is no minimum margin or statistical significance guarantee; wall-clock checks
+are deliberately not part of ordinary CI.
 """
 from __future__ import annotations
 
@@ -38,7 +40,7 @@ def validate_result(result, title):
 
 
 def prepare(manifest_path):
-    """All file IO/validation happens before any warmup or timed invocation."""
+    """Validate the declared reviewed sample set before any warmup or timed invocation."""
     manifest, pairs = load_manifest(manifest_path)
     root = Path(manifest_path).resolve().parent
     by_title = {p["title"]: p for p in manifest["pages"]}
@@ -55,13 +57,18 @@ def prepare(manifest_path):
     lock = json.loads((root / "benchmark-lock.json").read_text(encoding="utf-8"))
     fingerprint = [{k: p[k] for k in ("title", "source_sha256", "html_sha256")} for p in pages]
     if fingerprint != lock["sample_set"] or sha256(json_bytes(fingerprint)) != lock["sample_set_sha256"]:
-        raise ValueError("benchmark group differs from independently reviewed fixed sample lock")
+        raise ValueError("declared benchmark sample set differs from reviewed sample lock")
     return pages
 
 
 def environment(manifest_path):
-    files = {"legacy_adapter": SERVER / "tests/support/vcpedia_legacy_html.py",
+    """Hash the explicit local implementation/dependency set before timing, without Git or output files."""
+    files = {"benchmark_script": SERVER / "scripts/vcpedia_perf_baseline.py",
+             "freeze_loader": SERVER / "scripts/vcpedia_freeze_corpus.py",
+             "legacy_adapter": SERVER / "tests/support/vcpedia_legacy_html.py",
              "new_parser": SERVER / "src/world/get_new_songs/wikitext_parser.py",
+             "template_rules": SERVER / "src/world/get_new_songs/template_rules.py",
+             "text_conversion": SERVER / "src/world/get_new_songs/text_conversion.py",
              "config_rules": SERVER / "config/vcpedia_templates.json",
              "packaged_rules": SERVER / "src/world/get_new_songs/vcpedia_templates.json",
              "manifest": Path(manifest_path)}
@@ -102,7 +109,7 @@ def measure_page(page, page_index, parsers, clock):
 
 def benchmark(pages, *, parsers=None, clock=time.perf_counter):
     if not pages or len({p["title"] for p in pages}) != len(pages):
-        raise ValueError("empty/duplicate benchmark group")
+        raise ValueError("empty/duplicate selected benchmark sample set")
     parsers = parsers or {"old": parse_html, "new": parse_details}
     rows = [measure_page(page, index, parsers, clock) for index, page in enumerate(pages)]
     old_sum = sum(row["old_median_s"] for row in rows)
@@ -135,7 +142,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--check", action="store_true", help="three fixed complete groups, new sum of medians < old")
+    parser.add_argument("--check", action="store_true",
+                        help="three complete groups of the selected reviewed sample set; "
+                             "each new sum of medians < old; no minimum margin or statistical significance guarantee")
     args = parser.parse_args(argv)
     try:
         status = run(args.manifest, args.output, check=args.check)

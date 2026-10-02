@@ -72,7 +72,8 @@ def test_freeze_is_reproducible_without_git_or_oracle_generation(tmp_path, monke
     tool.freeze(first / "manifest.json", second)
     assert tool.load_manifest(first / "manifest.json") == tool.load_manifest(second / "manifest.json")
     assert not (first / "oracle.json").exists()
-    assert not any("baseline" in value for value in json.loads((first / "meta.json").read_text()).values())
+    metadata = json.loads((first / "meta.json").read_text(encoding="utf-8"))
+    assert not any("baseline" in value for value in metadata.values())
     assert (first / ".gitattributes").exists()
 
 

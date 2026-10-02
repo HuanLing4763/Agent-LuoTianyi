@@ -67,8 +67,7 @@ class VCPediaFetcher:
             try:
                 data, needed = parse_details(source, entity_name, with_missing=True)
                 if data:
-                    # 片段合并与补提模型互相独立：前者受配置开关控制，后者还需
-                    # use_llm 与已注册的补提模块；两者皆关时不产生任何外部访问。
+                    # 开关仅控制可选片段 POST 和模型调用，不禁止上面的正常详情 GET。
                     merge_fragments = bool(self.config.get("merge_rendered_fragments", True))
                     wants_llm = self.use_llm and self.extraction_llm_module is not None
                     if merge_fragments or wants_llm:
