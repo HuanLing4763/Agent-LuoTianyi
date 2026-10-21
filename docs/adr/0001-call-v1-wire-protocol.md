@@ -5,6 +5,8 @@
 - 最近修订：2026-10-10
 - 决策者：待非作者开发者审核
 
+2026-10-21 状态说明：协议实现和共享夹具已随 PR #361 集成到 dev；下文“阶段 A 候选”是原决策背景，不再表示生产代码尚未接线。此轮文档清理不自动将正式审核状态改为 Accepted，审核状态核对由 [#362](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/362) 承接。共享契约与夹具见 [contracts/call_v1](../../contracts/call_v1)。
+
 ## 背景
 
 实时通话需要独立 `call_ws`、JSON 控制消息与二进制音频帧。Web 只处理鉴权、连接和原始帧收发；`adapter.websocket` 解释 wire 协议并持有 `WireAudioFrame`。本 ADR 记录阶段 A 的候选协议，供 Python 与 TypeScript 纯 codec / parser 依据同一夹具实现；状态仍为 Proposed，不表示已经完成人工验收或生产接线。

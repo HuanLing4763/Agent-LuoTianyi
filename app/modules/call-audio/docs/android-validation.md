@@ -1,6 +1,6 @@
-# CL-12 Android 构建与模拟器证据
+# Android 通话音频：历史构建证据与真机验收清单
 
-> 状态：候选验证证据，不是第四次架构审查、非作者复审或人工验收
+> 状态：历史候选构建与模拟器证据，不是当前 Release、真机或真实供应商验收。实现已由 PR #361 集成；剩余验收见 [#362](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/362)。旧版本号、哈希和测试数量只对应下述历史构建，当前验收必须重新记录实际提交和 APK。
 
 ## 可复现工具矩阵
 
@@ -96,7 +96,7 @@ test-only smoke 只存在于隔离 build copy，不进入生产 UI 或 Git。
 
 ## 审查员真机测试清单
 
-测试候选 APK：
+历史候选 APK（仅供追溯；#362 须使用当前源码构建的 Release 并记录新哈希）：
 
 ```text
 SHA-256: ca8acf965a126d8824620f6659394dfad9d3bd0ee2ad3586ce0c0ce8aa0e2179

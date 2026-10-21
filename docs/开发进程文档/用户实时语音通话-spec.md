@@ -1,14 +1,19 @@
 # Android 用户实时语音通话
 
-> 状态：需求已确认，待实现  
+> 状态：实现已随 [PR #361](https://github.com/SheepLiu712/Agent-LuoTianyi/pull/361) 集成到 `dev@7d19a9aa`；保留本 Spec 承接尚未完成的真实环境验收，不表示已发布或全部 AC 已验收。
 > 平台：仅 Android 手机端  
 > 协议版本：`call.v1`  
-> 2026-10-13 契约补充：身份准备、首 ACK、接通前断线与恢复，以及实时停止、全部业务收尾完成和等待者取消的接口契约已确认，须由后续实现及测试兑现，不表示现有代码已验收。
-
-> 2026-10-13 CR-2 候选实现：隔离分支已用独立 `CallWebSocketAdapter` 封装 Session、Delivery、Binding、输出队列及接入/恢复事务；`call_ws` 只负责鉴权、物理帧收发和稳定关闭。该实现仍等待独立审查，ADR-0001 继续为 Proposed，不表示生产协议已经获得批准。
->
-> 2026-10-14 CR-3 候选实现：`StageManager.initialize()` 在通话接入前执行旧账本恢复并共享 owned 初始化任务；AgentRuntime、StageManager 与 CallWebSocketAdapter 分别公开角色、业务恢复/结算和传输能力事实，组合根不再遍历 Skill 或解释恢复报告。该实现仍等待独立审查，不表示非作者 spec 审批、合入或发布完成。
+> 剩余验收：[Issue #362](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/362)；本批文档清理：[Issue #363](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/363)。ADR-0001 的正式审核状态仍为 Proposed，不因集成或清理自动改变。
 > UI 草图：[实时语音通话 UI 草图](assets/用户实时语音通话-ui.svg)
+
+## 当前交付与保留范围
+
+- `CallEnding` 是唯一结算入口，CallStage 持有完整终止任务，Manager 只跟踪任务和占用；认知维护先于概要，保留模型指数退避、概要三级回退及维护批次幂等。没有进程终止后的通话恢复、启动扫描补写或截断模型重试的 15 秒总期限。
+- [#335](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/335) 已由 AC-12 的本地即时记录与后续稳定身份校准方案完成；不是增加整页刷新或轮询。[#311](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/311) 的回复失败日志缺陷和 [#360](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/360) 的嘴型/播放整合仍是独立开放事项。
+- #362 承接当前 Release 真机、真实供应商、端到端 P95、音频路由/焦点、实际播放/嘴型/常亮及存储后端验证。自动化、离线网络、旧 APK 或模拟器证据不能替代这些结果。
+- 已接受限制继续保留：进程终止后的结算恢复不在范围；供应商事件队列满、Activity 删除后的 keep-awake tag 边界暂不处理；重连统计窗口按 AC-06，提示音部分写入失败维持现有行为。不得因清理文档重新引入恢复服务或取消已排入的提示音。
+- 远期目标保留在文末，不作为本次已交付功能或 #362 的新增前置条件。主 Spec 与 UI 草图在剩余验收及持久约束核对完成后再决定最终清理。
+- 参考：[协议 ADR](../adr/0001-call-v1-wire-protocol.md)、[供应商说明](../../server/docs/dev/aliyun-realtime-speech.md)、[原生音频模块](../../app/modules/call-audio/README.md)、[历史构建证据与真机清单](../../app/modules/call-audio/docs/android-validation.md)、[认知维护迁移](../../server/docs/dev/认知维护迁移与验收.md)。已删除阶段文档可从清理前提交 `7d19a9aa` 和原 Issue/PR 追溯。
 
 ## 用户故事
 
@@ -411,7 +416,7 @@ class CallContent:
 | `state`、`outcome`、`end_reason` | 生命周期与结果 |
 | `requested_at`、`connected_at`、`disconnected_at`、`ended_at` | 时间事实 |
 | `active_duration_ms` | 有效通话时长 |
-| `summary_status`、`maintenance_status` | 两条独立结算进度 |
+| `summary_status`、`maintenance_status` | 概要与维护分别记录结果；不表示并行执行或启动补偿 |
 | `conversation_id` | 幂等关联 Conversation |
 | `maintenance_turn_seq` | 已完成认知维护的最后通话轮次 |
 | `created_at`、`updated_at` | 审计时间 |
@@ -525,12 +530,12 @@ async def maintain(
 
 ### 当前基线
 
-- 服务端现有 `/chat_ws` 与独立 `/call_ws`；`CallWebSocketAdapter` 封装 call.v1 接入、恢复与传输，`StageManager.try_to_get_stage` 封装交互获取与业务建立，`CallStage` 已进入正式装配。
+- 服务端现有 `/chat_ws` 与独立 `/call_ws`；`CallWebSocketAdapter` 封装 call.v1 接入、恢复与传输，`StageManager.open_call` 封装通话获取与业务建立，`CallStage` 已进入正式装配。
 - 聊天继续使用 `adapter.websocket.chat.WebSocketAdapter`；通话使用并列的 `adapter.websocket.call_v1.CallWebSocketAdapter`。Web 只负责鉴权与物理收发，不直连 CallStage，也不构造 Session/Delivery/Binding。
-- Android 聊天页目前没有电话入口；现有 WebView 音频链路面向普通聊天播放。
-- 现有 Conversation 内容类型没有通话内容。
-- 现有反思流程会在普通聊天回复后频繁执行记忆、压缩和画像更新，本功能要求迁移为统一认知维护边界。
-- 现有 TTS 链路需要补充请求级取消、未完成块丢弃和 CALL 路由字段。
+- Android 聊天页已接入电话入口与通话生命周期；普通聊天使用 WebView 音频，通话使用原生音频模块，两者整合评估由 #360 跟踪。
+- Conversation 已支持 CallContent；历史投影仅公开通话身份、结果、时长和结束原因，不公开概要。
+- 聊天和通话使用统一认知维护边界；维护批次冻结、幂等和进度提交保持，旧 Reflection 不再注册生产执行路径。
+- TTS 已接入请求级取消、未完成块丢弃和 CALL 路由；生成、发送及客户端实际播放完成仍是独立时点。
 
 ### 目标架构图
 
@@ -982,14 +987,6 @@ Web 在认证后只交付 ASGI 已重组的完整 text/bytes 消息，检查 rec
 物理断线使该连接所有待发送和发送中的交付尝试失败；通话协议可重放内容继续由协议会话保留，恢复时建立新投递尝试。解绑禁止新的业务输入，必要的结束/取消输出按序处理。StageManager 只使用注入的 detach_stage_binding，不调用 Adapter 的网络入口或操作具体协议状态；用户身份和连接存活状态只读，断线标记由 Adapter 更新。
 
 验收补充：两类入口的原始帧校验、普通/语音/切换共用 receive、输出取出后尚未完成、发送成功/失败/取消、等待者取消、断线清理、旧连接迟到反馈、首 ACK 在业务输出前、通话恢复重放及客户端 ACK 与网络完成彼此独立。内部实现完成迁移后统一以下划线命名文件、类和非契约方法，包仅导出外部真正使用的接口。
-
-建立操作被拒绝时，Adapter 抛出携带关闭码及可选已编码报文的 `AdapterConnectionError`（通话错误可用其专用子类）；没有连接句柄的拒绝应答由 Web 直接发送。Web 不识别 StageManager 的业务异常或自行编码其协议错误。相同 call.start 重绑时先应答建立请求，再重放尚未确认的状态；恢复提交在暂停新输出入队后刷新重放快照，保证接入检查期间产生的状态不会丢失。
-
-建立操作被拒绝时，Adapter 抛出携带关闭码及可选已编码报文的 `AdapterConnectionError`（通话错误可用其专用子类）；没有连接句柄的拒绝应答由 Web 直接发送。Web 不识别 StageManager 的业务异常或自行编码其协议错误。相同 call.start 重绑时先应答建立请求，再重放尚未确认的状态；恢复提交在暂停新输出入队后刷新重放快照，保证接入检查期间产生的状态不会丢失。
-
-建立操作被拒绝时，Adapter 抛出携带关闭码及可选已编码报文的 `AdapterConnectionError`（通话错误可用其专用子类）；没有连接句柄的拒绝应答由 Web 直接发送。Web 不识别 StageManager 的业务异常或自行编码其协议错误。相同 call.start 重绑时先应答建立请求，再重放尚未确认的状态；恢复提交在暂停新输出入队后刷新重放快照，保证接入检查期间产生的状态不会丢失。
-
-建立操作被拒绝时，Adapter 抛出携带关闭码及可选已编码报文的 `AdapterConnectionError`（通话错误可用其专用子类）；没有连接句柄的拒绝应答由 Web 直接发送。Web 不识别 StageManager 的业务异常或自行编码其协议错误。相同 call.start 重绑时先应答建立请求，再重放尚未确认的状态；恢复提交在暂停新输出入队后刷新重放快照，保证接入检查期间产生的状态不会丢失。
 
 建立操作被拒绝时，Adapter 抛出携带关闭码及可选已编码报文的 `AdapterConnectionError`（通话错误可用其专用子类）；没有连接句柄的拒绝应答由 Web 直接发送。Web 不识别 StageManager 的业务异常或自行编码其协议错误。相同 call.start 重绑时先应答建立请求，再重放尚未确认的状态；恢复提交在暂停新输出入队后刷新重放快照，保证接入检查期间产生的状态不会丢失。
 

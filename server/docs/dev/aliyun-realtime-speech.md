@@ -1,13 +1,11 @@
-# CL-07 · 阿里云 RealtimeSpeechSession 实现说明
+# 阿里云 RealtimeSpeechSession 实现说明
 
-> Gate 状态：Gate 1 曾因回答清理作用域、有界事件队列、失败收束与配置严格性问题判定 **BLOCKED**。本轮已完成对应修复并补充离线证据；本文不将其标记为 Accepted，等待父流程 Gate 2/3 与真实开发者验收。
->
-> 后续 Gate 3 focused review 又因事件消费者取消可能遗留隐式 `Queue.get` waiter 并偷取未来轮次而判定 **BLOCKED**。最终 bounded remediation 已改为适配器自有的 `deque + asyncio.Condition` 单消费者通道，并增加取消竞态证据；历史判定仍保留，等待父流程独立验证。
+> 实现已随 PR #361 集成到 dev。本文保留供应商配置、事件映射和限制；真实音频与供应商验收由 [#362](https://github.com/SheepLiu712/Agent-LuoTianyi/issues/362) 承接。早期 Gate 判定与修复过程见清理前提交 `7d19a9aa` 的 CL-07 文档及 PR #289，不视为当前验收结果。
 
 ## 交付接口
 
 - `AliyunRealtimeSpeechConfig`：显式接收 `api_key`、`model` 以及 `workspace_id` 或受控 `endpoint`，不内置供应商型号。
-- `AliyunRealtimeSpeechSessionFactory`：按 `call_id` 调用创建独立会话；本切片不接入生产组合根。禁用或配置不完整时抛出 `RealtimeSpeechUnavailable`。
+- `AliyunRealtimeSpeechSessionFactory`：按 `call_id` 调用创建独立会话，已接入运行时装配。禁用或配置不完整时抛出 `RealtimeSpeechUnavailable`。
 - `AliyunRealtimeSpeechSession`：实现骨架 `RealtimeSpeechSession`，提供单接收循环、有限写队列与事件队列、初始化握手、16 kHz 单声道 PCM16 校验、事件归一化和幂等关闭。
 - 回答清理按 `response_id` 隔离，状态包含取消请求/确认、`response.done`、assistant item 与待删除项；删除 ACK 可在 `response.done` 后于可配置期限内到达，默认期限为 2 秒。
 - assistant item 分别记录“已经请求删除”和“正在等待删除 ACK”：重复 added/done、先 ACK 后 done 及已知 `conversation.item.created` 不会重复发送删除；新 item 仍独立删除，未知 item 不做归属猜测并 fail-closed。
@@ -51,5 +49,5 @@
 - 事件队列默认上限 64；正常读取时以反压保留完整事件。终态使用队列外的单一状态槽：已成功入队的业务事件先按序排空，再产生唯一 `ProviderFailed` 或正常结束；失败和关闭都不为终态腾容量而丢弃轮次。
 - `events()` 明确只允许一个消费者。通道不创建脱离生成器所有权的后台 `Queue.get`/terminal wait 任务；取消或 `GeneratorExit` 会释放消费者所有权，并把已取出但尚未稳定交付的事件放回队首。后续消费者可继续按 FIFO 恰好一次读取，取消后关闭也不残留 wait task。
 - reader、writer 与单一 cleanup 调度器均为会话拥有任务；失败和关闭共享有界 teardown，socket `close()` 也受 `close_timeout_seconds` 约束。
-- 本切片没有修改 Stage、Agent、Runtime、数据库或 App，也不宣称完整满足 AC-05 的上下文行为、情绪/声音语义或 AC-16 的整条通话降级链。
-- 真实供应商 smoke 仅验证建连与 `session.updated` 握手，默认跳过；本次未运行、未发送音频、未产生付费请求。供应商型号能力、smart turn 实际效果和真实错误行为仍需有凭据的人工 smoke 验证。
+- 供应商事件队列满导致读循环无法及时观察故障的边界，经负责人确认暂不处理；有界队列和正常消费测试不等于满队列故障验收。
+- 真实供应商 smoke 仅验证建连与 `session.updated` 握手，默认跳过；既有离线证据不说明真实型号能力、smart turn 实际效果或真实错误行为通过。#362 要求带音频的真实闭环和明确设备/供应商证据。

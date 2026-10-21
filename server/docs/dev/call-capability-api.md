@@ -24,6 +24,8 @@ Authorization: Bearer {message_token}
 }
 ```
 
-`reason` 是以下稳定枚举之一：`available`、`disabled`、`untrusted_host`、`provider_unavailable`、`call_tts_unavailable`、`summary_unavailable`、`settlement_unavailable`、`stage_binding_unavailable`、`recovery_unavailable`、`character_unavailable`、`runtime_not_ready`。
+`reason` 是以下稳定枚举之一：`available`、`disabled`、`untrusted_host`、`provider_unavailable`、`call_tts_unavailable`、`summary_unavailable`、`settlement_unavailable`、`stage_binding_unavailable`、`character_unavailable`、`runtime_not_ready`。
+
+当前实现不扫描或补写进程终止后未完成的通话，能力查询不再包含启动恢复门禁或 `recovery_unavailable`。这不影响同进程的三秒网络恢复与维护批次幂等。实现入口为 `src/application/user/call_capability.py`，验证入口为 `tests/unit/web/test_call_capability.py`。
 
 运行时能力按上述就绪条件顺序投影；首个未满足条件决定 `reason`。运行时的能力状态不可用时，接口返回 `200`、`available: false` 和 `runtime_not_ready`，不泄露配置、密钥或内部异常。
