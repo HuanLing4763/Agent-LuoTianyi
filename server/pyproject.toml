@@ -23,7 +23,7 @@ dependencies = [
     "mutagen==1.48.1",
     "mwparserfromhell",
     "networkx",
-    "numpy>=1.24,<2",
+    "numpy>=2",
     "openai",
     "pillow",
     "playwright",
