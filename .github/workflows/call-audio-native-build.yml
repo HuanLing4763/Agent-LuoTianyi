@@ -1,0 +1,61 @@
+name: call-audio 原生编译与单元测试
+
+# fork 本地验证工作流：编译 call-audio 模块并运行其 JVM 单元测试，
+# 用于在无本地 Android SDK 的环境下验证原生改动（如铃声资源 R.raw 引用）。
+# 该分支不进入任何 PR。
+
+on:
+  push:
+    branches: [ci/call-audio-compile]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '待编译的分支或提交'
+        required: false
+        default: 'ci/call-audio-compile'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: call-audio-native-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-build:
+    name: call-audio compile + unit test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: 确保 SDK 组件齐备（platforms;android-36 与 build-tools;36.0.0）
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - name: 安装 app 依赖（expo autolinking 在 Gradle 配置期需要 node_modules）
+        run: npm ci
+        working-directory: app
+      - name: 编译并测试 call-audio 模块
+        run: >-
+          ./gradlew :agent-luotianyi-call-audio:compileDebugKotlin
+          :agent-luotianyi-call-audio:testDebugUnitTest
+          --no-daemon --console=plain
+        working-directory: app/android
+      - name: 归档编译与测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: call-audio-native-build-reports
+          path: |
+            app/modules/call-audio/android/build/reports/
+            app/modules/call-audio/android/build/test-results/
