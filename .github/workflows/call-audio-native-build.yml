@@ -23,9 +23,9 @@ concurrency:
 
 jobs:
   native-build:
-    name: call-audio compile + unit test
+    name: call-audio compile + unit test + acceptance APK
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +40,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
       # runner 镜像已预接受 SDK 许可证，缺失的 platforms/build-tools 由 AGP 在配置期自动下载
       - name: 安装 app 依赖（expo autolinking 在 Gradle 配置期需要 node_modules）
         run: npm ci
@@ -47,12 +48,34 @@ jobs:
       - name: 生成 android 原生工程（CNG：app/android 不进仓库，需 prebuild 生成）
         run: npx expo prebuild --platform android --no-install
         working-directory: app
+      - name: 准备 Live2D 资源目录（与本地全新构建行为一致：空 public/）
+        run: mkdir -p public
       - name: 编译并测试 call-audio 模块
         run: >-
           ./gradlew :agent-luotianyi-call-audio:compileDebugKotlin
           :agent-luotianyi-call-audio:testDebugUnitTest
           --no-daemon --console=plain
         working-directory: app/android
+      - name: 生成一次性验收签名（30 天有效，仅用于真机验收包，非发布签名）
+        run: >-
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/acceptance.keystore"
+          -alias agentluo -keyalg RSA -keysize 2048 -validity 30
+          -storepass agentluo-acceptance-2026 -keypass agentluo-acceptance-2026
+          -dname "CN=AgentLuo Acceptance"
+      - name: 打包验收 APK（assembleRelease，JS 内联，经 build-android-release.ps1 同款签名接口）
+        run: >-
+          ./gradlew :app:assembleRelease --no-daemon --console=plain
+        working-directory: app/android
+        env:
+          MYAPP_UPLOAD_STORE_FILE: /home/runner/work/_temp/acceptance.keystore
+          MYAPP_UPLOAD_KEY_ALIAS: agentluo
+          MYAPP_UPLOAD_STORE_PASSWORD: agentluo-acceptance-2026
+          MYAPP_UPLOAD_KEY_PASSWORD: agentluo-acceptance-2026
+      - name: 归档验收 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentluo-acceptance-apk
+          path: app/android/app/build/outputs/apk/release/app-release.apk
       - name: 归档编译与测试报告
         if: always()
         uses: actions/upload-artifact@v4
