@@ -44,6 +44,9 @@ jobs:
       - name: 安装 app 依赖（expo autolinking 在 Gradle 配置期需要 node_modules）
         run: npm ci
         working-directory: app
+      - name: 生成 android 原生工程（CNG：app/android 不进仓库，需 prebuild 生成）
+        run: npx expo prebuild --platform android --no-install
+        working-directory: app
       - name: 编译并测试 call-audio 模块
         run: >-
           ./gradlew :agent-luotianyi-call-audio:compileDebugKotlin
