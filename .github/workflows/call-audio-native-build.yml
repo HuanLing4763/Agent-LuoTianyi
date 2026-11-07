@@ -40,8 +40,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: 确保 SDK 组件齐备（platforms;android-36 与 build-tools;36.0.0）
-        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      # runner 镜像已预接受 SDK 许可证，缺失的 platforms/build-tools 由 AGP 在配置期自动下载
       - name: 安装 app 依赖（expo autolinking 在 Gradle 配置期需要 node_modules）
         run: npm ci
         working-directory: app
